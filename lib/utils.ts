@@ -67,33 +67,18 @@ export function parseBlocksForCommands(
   const commands: { servoId: number; value: number }[] = [];
 
   blocks.forEach((block) => {
-    switch (block.definitionId) {
-      case "move_joint":
-      case "set_joint_position":
-        const joint = block.parameters.joint as string;
-        const angle = (block.parameters.angle ||
-          block.parameters.position) as number;
-        const servoId = JOINT_TO_SERVO_ID[joint];
-
-        if (servoId && typeof angle === "number") {
-          commands.push({
-            servoId,
-            value: angle, // Use degrees directly
-          });
-        }
-        break;
-      case "set_gripper":
-        const position = block.parameters.position as number;
-        const gripperServoId = JOINT_TO_SERVO_ID["gripper"];
-
-        if (gripperServoId && typeof position === "number") {
-          commands.push({
-            servoId: gripperServoId,
-            value: position,
-          });
-        }
-        break;
+    if (block.definitionId === "move_to") {
+      const joint = block.parameters.joint as string;
+      const angle = block.parameters.angle as number;
+      const servoId = JOINT_TO_SERVO_ID[joint];
+      if (servoId && typeof angle === "number") {
+        commands.push({
+          servoId,
+          value: angle,
+        });
+      }
     }
+    // home_robot is handled separately in ScratchContext
   });
 
   return commands;

@@ -41,6 +41,8 @@ type ScratchProviderProps = {
   children: ReactNode;
   updateJointsDegrees?: UpdateJointsDegrees;
   homeRobot?: () => Promise<void>;
+  openGripper?: () => Promise<void>;
+  closeGripper?: () => Promise<void>;
   isConnected?: boolean;
 };
 
@@ -48,8 +50,13 @@ export function ScratchProvider({
   children,
   updateJointsDegrees,
   homeRobot,
+  openGripper,
+  closeGripper,
   isConnected = false,
-}: ScratchProviderProps) {
+}: ScratchProviderProps & {
+  openGripper?: () => Promise<void>;
+  closeGripper?: () => Promise<void>;
+}) {
   const [blocks, setBlocks] = useState<BlockInstance[]>([]);
   const [generatedCode, setGeneratedCode] = useState("");
   const [isRunningCode, setIsRunningCode] = useState(false);
@@ -130,44 +137,34 @@ export function ScratchProvider({
     setIsRunningCode(true);
     setTimeout(() => {}, 2_000); // Simulate loading delay
     try {
-      console.log("Running code...");
-      console.log("Blocks:", blocks);
-      console.log(
-        "UpdateJointsDegrees function available:",
-        !!updateJointsDegrees
-      );
-
-      // Execute blocks in sequence
       for (const block of blocks) {
         if (block.definitionId === "home_robot" && homeRobot) {
-          console.log("Executing home command...");
           await homeRobot();
-          console.log("Home command executed successfully!");
-        } else {
-          // Handle regular movement blocks
+        } else if (block.definitionId === "move_to") {
           const commands = parseBlocksForCommands([block]);
           if (commands.length > 0) {
-            if (isConnected) {
-              console.log("Executing command on physical robot...");
-            } else {
-              console.log("Executing command on virtual robot only...");
-            }
             await updateJointsDegrees(commands);
-            console.log("Command executed successfully!");
           }
+        } else if (block.definitionId === "open_gripper" && openGripper) {
+          await openGripper();
+        } else if (block.definitionId === "close_gripper" && closeGripper) {
+          await closeGripper();
+        } else if (block.definitionId === "wait_seconds") {
+          const duration =
+            typeof block.parameters.seconds === "number"
+              ? block.parameters.seconds * 1000
+              : parseFloat(String(block.parameters.seconds)) * 1000;
+          await new Promise((resolve) => setTimeout(resolve, duration));
         }
-
-        // Add a small delay between commands for better visualization
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
-
       setIsRunningCode(false);
     } catch (error) {
-      console.error("Error running code:", error);
-      alert("Error running code – see console for details.");
       setIsRunningCode(false);
+      alert("Error running code – see console for details.");
+      console.error("Error running code:", error);
     }
-  }, [blocks, updateJointsDegrees, homeRobot, isConnected]);
+  }, [blocks, updateJointsDegrees, homeRobot, openGripper, closeGripper]);
 
   return (
     <ScratchContext.Provider

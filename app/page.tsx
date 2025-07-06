@@ -73,6 +73,8 @@ function HomeContentWrapper() {
     emergencyStop,
     homeRobot,
     updateJointsDegrees,
+    openGripper,
+    closeGripper,
   } = useRobot();
   const [activeTab, setActiveTab] = useState<"blocks" | "robot">("blocks");
 
@@ -80,6 +82,8 @@ function HomeContentWrapper() {
     <ScratchProvider
       updateJointsDegrees={updateJointsDegrees}
       homeRobot={homeRobot}
+      openGripper={openGripper}
+      closeGripper={closeGripper}
       isConnected={isConnected}
     >
       <PageContent

@@ -4,9 +4,9 @@ import { registry } from "@/lib/blockRegistry";
 const defaultBlocks: BlockDefinition[] = [
   // Motion blocks
   {
-    id: "move_joint",
+    id: "move_to",
     category: "motion",
-    name: "move joint",
+    name: "move to",
     color: "hsl(217, 91%, 60%)",
     shape: "command",
     parameters: [
@@ -31,37 +31,7 @@ const defaultBlocks: BlockDefinition[] = [
         max: 360,
       },
     ],
-    codeTemplate: "moveJoint('{{joint}}', {{angle}});",
-  },
-  {
-    id: "set_joint_position",
-    category: "motion",
-    name: "set joint position",
-    color: "hsl(217, 91%, 60%)",
-    shape: "command",
-    parameters: [
-      {
-        name: "joint",
-        type: "dropdown",
-        defaultValue: "base",
-        options: [
-          "base",
-          "shoulder",
-          "elbow",
-          "wrist_flex",
-          "wrist_roll",
-          "gripper",
-        ],
-      },
-      {
-        name: "position",
-        type: "number",
-        defaultValue: 0,
-        min: 0,
-        max: 180,
-      },
-    ],
-    codeTemplate: "updateJointDegrees('{{joint}}', {{position}});",
+    codeTemplate: "moveTo('{{joint}}', {{angle}});",
   },
 
   // System blocks

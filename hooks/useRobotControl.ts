@@ -213,41 +213,52 @@ export function useRobotControl(
   // Update revolute joint degrees
   const updateJointDegrees = useCallback(
     async (servoId: number, value: number) => {
-      const newStates = [...jointStates];
-      const jointIndex = newStates.findIndex(
-        (state) => state.servoId === servoId
-      );
-
-      if (jointIndex !== -1) {
-        newStates[jointIndex].targetDegrees = value;
-        newStates[jointIndex].isMoving = true;
-
-        if (isConnected) {
-          try {
-            if (value >= 0 && value <= 360) {
-              const servoPosition = degreesToServoPosition(value);
-              await scsServoSDK.writePosition(
-                servoId,
-                Math.round(servoPosition)
-              );
-            } else {
-              console.warn(
-                `Value ${value} for servo ${servoId} is out of range (0-360). Skipping update.`
-              );
-            }
-          } catch (error) {
-            console.error(
-              `Failed to update servo degrees for joint with servoId ${servoId}:`,
-              error
-            );
-            newStates[jointIndex].isMoving = false;
-          }
+      setJointStates((prevStates) => {
+        const newStates = [...prevStates];
+        const jointIndex = newStates.findIndex(
+          (state) => state.servoId === servoId
+        );
+        if (jointIndex !== -1) {
+          newStates[jointIndex].targetDegrees = value;
+          newStates[jointIndex].isMoving = true;
         }
+        return newStates;
+      });
 
-        setJointStates(newStates);
+      if (isConnected) {
+        try {
+          if (value >= 0 && value <= 360) {
+            const servoPosition = degreesToServoPosition(value);
+            await scsServoSDK.writePosition(servoId, Math.round(servoPosition));
+            // Read back the actual position and update the virtual state
+            const actualPosition = await scsServoSDK.readPosition(servoId);
+            const actualDegrees = servoPositionToAngle(actualPosition);
+            setJointStates((prevStates) => {
+              const newStates = [...prevStates];
+              const jointIndex = newStates.findIndex(
+                (state) => state.servoId === servoId
+              );
+              if (jointIndex !== -1) {
+                newStates[jointIndex].degrees = actualDegrees;
+                newStates[jointIndex].targetDegrees = actualDegrees;
+                newStates[jointIndex].isMoving = false;
+              }
+              return newStates;
+            });
+          } else {
+            console.warn(
+              `Value ${value} for servo ${servoId} is out of range (0-360). Skipping update.`
+            );
+          }
+        } catch (error) {
+          console.error(
+            `Failed to update servo degrees for joint with servoId ${servoId}:`,
+            error
+          );
+        }
       }
     },
-    [jointStates, isConnected, scsServoSDK]
+    [isConnected, scsServoSDK]
   );
 
   // Update continuous joint speed
@@ -282,58 +293,45 @@ export function useRobotControl(
   // Update multiple joints' degrees simultaneously
   const updateJointsDegrees: UpdateJointsDegrees = useCallback(
     async (updates) => {
-      const newStates = [...jointStates];
-      const servoPositions: Record<number, number> = {};
-      const validUpdates: {
-        servoId: number;
-        value: number;
-      }[] = [];
-
-      updates.forEach(({ servoId, value }) => {
-        const jointIndex = newStates.findIndex(
-          (state) => state.servoId === servoId
-        );
-
-        if (
-          jointIndex !== -1 &&
-          newStates[jointIndex].jointType === "revolute"
-        ) {
-          newStates[jointIndex].targetDegrees = value;
-          newStates[jointIndex].isMoving = true;
-
-          if (isConnected) {
-            if (value >= 0 && value <= 360) {
-              const servoPosition = degreesToServoPosition(value);
-              servoPositions[servoId] = Math.round(servoPosition);
-              validUpdates.push({ servoId, value });
-            } else {
-              console.warn(
-                `Value ${value} for servo ${servoId} is out of range (0-360). Skipping update in sync write.`
-              );
-            }
+      setJointStates((prevStates) => {
+        const newStates = [...prevStates];
+        updates.forEach(({ servoId, value }) => {
+          const jointIndex = newStates.findIndex(
+            (state) => state.servoId === servoId
+          );
+          if (
+            jointIndex !== -1 &&
+            newStates[jointIndex].jointType === "revolute"
+          ) {
+            newStates[jointIndex].targetDegrees = value;
+            newStates[jointIndex].isMoving = true;
           }
-        }
+        });
+        return newStates;
       });
 
-      if (isConnected && Object.keys(servoPositions).length > 0) {
-        try {
-          await scsServoSDK.syncWritePositions(servoPositions);
-        } catch (error) {
-          console.error("Failed to update multiple servo degrees:", error);
-          validUpdates.forEach(({ servoId }) => {
-            const jointIndex = newStates.findIndex(
-              (state) => state.servoId === servoId
+      if (isConnected) {
+        const servoPositions: Record<number, number> = {};
+        updates.forEach(({ servoId, value }) => {
+          if (value >= 0 && value <= 360) {
+            const servoPosition = degreesToServoPosition(value);
+            servoPositions[servoId] = Math.round(servoPosition);
+          } else {
+            console.warn(
+              `Value ${value} for servo ${servoId} is out of range (0-360). Skipping update in sync write.`
             );
-            if (jointIndex !== -1) {
-              newStates[jointIndex].isMoving = false;
-            }
-          });
+          }
+        });
+        if (Object.keys(servoPositions).length > 0) {
+          try {
+            await scsServoSDK.syncWritePositions(servoPositions);
+          } catch (error) {
+            console.error("Failed to update multiple servo degrees:", error);
+          }
         }
       }
-
-      setJointStates(newStates);
     },
-    [jointStates, isConnected, scsServoSDK]
+    [isConnected, scsServoSDK]
   );
 
   // Update multiple joints' speed simultaneously
@@ -379,6 +377,11 @@ export function useRobotControl(
 
   // Home the robot - move all joints to their initial positions from URDF
   const homeRobot = useCallback(async () => {
+    if (!isConnected) {
+      alert("Robot is not connected. Cannot home robot.");
+      console.warn("Robot is not connected. Cannot home robot.");
+      return;
+    }
     const homeUpdates = jointDetails.map((joint) => {
       const homeAngle = urdfInitJointAngles?.[joint.name] ?? 0;
       return {
@@ -386,10 +389,17 @@ export function useRobotControl(
         value: homeAngle,
       };
     });
-
     console.log("Homing robot to URDF initial positions:", homeUpdates);
-    await updateJointsDegrees(homeUpdates);
-  }, [jointDetails, urdfInitJointAngles, updateJointsDegrees]);
+    // Move each joint individually for better reliability
+    for (const { servoId, value } of homeUpdates) {
+      try {
+        await updateJointDegrees(servoId, value);
+        console.log(`Homed joint servoId ${servoId} to ${value} degrees`);
+      } catch (error) {
+        console.error(`Failed to home joint servoId ${servoId}:`, error);
+      }
+    }
+  }, [isConnected, jointDetails, urdfInitJointAngles, updateJointDegrees]);
 
   const emergencyStop = useCallback(async () => {
     if (isConnected) {
@@ -425,6 +435,19 @@ export function useRobotControl(
     }
   }, [isConnected, jointDetails, jointStates, initialPositions, scsServoSDK]);
 
+  // Gripper control (Jaw = servoId 6)
+  const GRIPPER_SERVO_ID = 6;
+  const GRIPPER_OPEN_ANGLE = 270;
+  const GRIPPER_CLOSE_ANGLE = 180;
+
+  const openGripper = useCallback(async () => {
+    await updateJointDegrees(GRIPPER_SERVO_ID, GRIPPER_OPEN_ANGLE);
+  }, [updateJointDegrees]);
+
+  const closeGripper = useCallback(async () => {
+    await updateJointDegrees(GRIPPER_SERVO_ID, GRIPPER_CLOSE_ANGLE);
+  }, [updateJointDegrees]);
+
   return {
     isConnected,
     connectRobot,
@@ -437,6 +460,8 @@ export function useRobotControl(
     updateJointsSpeed,
     setJointDetails,
     homeRobot,
+    openGripper,
+    closeGripper,
     emergencyStop,
   };
 }

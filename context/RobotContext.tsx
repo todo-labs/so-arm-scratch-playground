@@ -11,6 +11,8 @@ type RobotContextType = {
   disconnectRobot: () => Promise<void>;
   emergencyStop: () => Promise<void>;
   homeRobot: () => Promise<void>;
+  openGripper: () => Promise<void>;
+  closeGripper: () => Promise<void>;
   jointStates: JointState[];
   setJointDetails: (details: JointDetails[]) => void;
   updateJointsDegrees: (
@@ -38,6 +40,8 @@ export function RobotProvider({
     disconnectRobot,
     emergencyStop,
     homeRobot,
+    openGripper,
+    closeGripper,
     jointStates,
     setJointDetails,
     updateJointsDegrees,
@@ -51,6 +55,8 @@ export function RobotProvider({
         disconnectRobot,
         emergencyStop,
         homeRobot,
+        openGripper,
+        closeGripper,
         jointStates,
         setJointDetails,
         updateJointsDegrees,

@@ -29,6 +29,34 @@ export interface ImportResult {
   error?: string;
 }
 
+const WORD_LIST = [
+  "autumn", "hidden", "bitter", "misty", "silent", "empty", "dry", "dark", "summer",
+  "icy", "delicate", "quiet", "white", "cool", "spring", "winter", "patient",
+  "twilight", "dawn", "crimson", "wispy", "weathered", "blue", "billowing",
+  "broken", "cold", "damp", "falling", "frosty", "green", "long", "late", "lingering",
+  "bold", "little", "morning", "muddy", "old", "red", "rough", "still", "small",
+  "sparkling", "throbbing", "shy", "wandering", "withered", "wild", "black",
+  "young", "holy", "solitary", "fragrant", "aged", "snowy", "proud", "floral",
+  "restless", "divine", "polished", "ancient", "purple", "lively", "nameless",
+  "pudding", "apple", "ocean", "mountain", "river", "forest", "desert", "cloud",
+  "dream", "star", "moon", "sun", "fire", "water", "wind", "stone", "bird", "cat",
+  "dog", "lion", "tiger", "bear", "wolf", "fox", "eagle", "hawk", "owl", "whale",
+  "dolphin", "shark", "fish", "dragon", "phoenix", "unicorn", "knight", "wizard",
+  "hero", "legend", "vortex", "nebula", "galaxy", "planet", "comet", "asteroid"
+];
+
+/**
+ * Generates a random project name using 3 words delimited by hyphens
+ */
+export function generateRandomProjectName(): string {
+  const words = [];
+  for (let i = 0; i < 3; i++) {
+    const randomIndex = Math.floor(Math.random() * WORD_LIST.length);
+    words.push(WORD_LIST[randomIndex]);
+  }
+  return words.join("-");
+}
+
 /**
  * Creates a project data object from blocks
  */
@@ -40,7 +68,7 @@ export function createProjectData(
   
   return {
     metadata: {
-      name: options.name || "Untitled Project",
+      name: options.name || generateRandomProjectName(),
       description: options.description || "",
       author: options.author || "",
       createdAt: now,

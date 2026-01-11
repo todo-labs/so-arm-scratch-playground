@@ -9,6 +9,7 @@ import {
   Sparkles,
   X,
   FileCode2,
+  RefreshCw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import {
   importProjectFromFile,
   generateShareableCode,
   importFromShareableCode,
+  generateRandomProjectName,
   type ProjectData,
   type ImportResult,
 } from "@/lib/projectIO";
@@ -40,7 +42,7 @@ export function ProjectShareDialog() {
   const { blocks, setBlocks } = useScratch();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("export");
-  const [projectName, setProjectName] = useState("My Robot Project");
+  const [projectName, setProjectName] = useState(() => generateRandomProjectName());
   const [projectDescription, setProjectDescription] = useState("");
   const [projectAuthor, setProjectAuthor] = useState("");
   const [shareCode, setShareCode] = useState("");
@@ -159,6 +161,11 @@ export function ProjectShareDialog() {
     setShareCode("");
   };
 
+  const refreshProjectName = () => {
+    setProjectName(generateRandomProjectName());
+    playSound("click");
+  };
+
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: "export", label: "Export", icon: <Download className="w-4 h-4" /> },
     { id: "import", label: "Import", icon: <Upload className="w-4 h-4" /> },
@@ -216,13 +223,25 @@ export function ProjectShareDialog() {
                 <Label htmlFor="project-name" className="text-sm font-medium text-slate-700">
                   Project Name
                 </Label>
-                <Input
-                  id="project-name"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="My Awesome Robot Program"
-                  className="bg-white"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="project-name"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    placeholder="My Awesome Robot Program"
+                    className="bg-white flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={refreshProjectName}
+                    title="Generate new random name"
+                    className="shrink-0 hover:bg-purple-50 hover:text-purple-600 border-slate-200"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
               
               <div className="space-y-2">
@@ -397,13 +416,25 @@ export function ProjectShareDialog() {
                 <Label htmlFor="share-project-name" className="text-sm font-medium text-slate-700">
                   Project Name
                 </Label>
-                <Input
-                  id="share-project-name"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="My Awesome Robot Program"
-                  className="bg-white"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="share-project-name"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    placeholder="My Awesome Robot Program"
+                    className="bg-white flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={refreshProjectName}
+                    title="Generate new random name"
+                    className="shrink-0 hover:bg-purple-50 hover:text-purple-600 border-slate-200"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
 
               <Button

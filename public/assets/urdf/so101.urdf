@@ -5,8 +5,8 @@
 https://cad.onshape.com/documents/7715cc284bb430fe6dab4ffd/w/4fd0791b683777b02f8d975a/e/826c553ede3b7592eb9ca800 -->
 <robot name="so100">
   <!-- Materials -->
-  <material name="green">
-    <color rgba="0.06 0.4 0.1 1.0" />
+  <material name="primary">
+    <color rgba="1.0 0.4 0.0 1.0" />
   </material>
   <material name="black">
     <color rgba="0.1 0.1 0.1 1.0" />
@@ -36,7 +36,7 @@ https://cad.onshape.com/documents/7715cc284bb430fe6dab4ffd/w/4fd0791b683777b02f8
       <geometry>
         <mesh filename="../stl/base_motor_holder_so101_v1.stl" />
       </geometry>
-      <material name="green" />
+      <material name="primary" />
     </visual>
     <collision>
       <origin xyz="-0.169402 -0.168167 0.0300817" rpy="1.5708 -1.67685e-15 1.5708" />
@@ -50,7 +50,7 @@ https://cad.onshape.com/documents/7715cc284bb430fe6dab4ffd/w/4fd0791b683777b02f8
       <geometry>
         <mesh filename="../stl/base_so101_v2.stl" />
       </geometry>
-      <material name="green" />
+      <material name="primary" />
     </visual>
     <collision>
       <origin xyz="-0.169402 -0.168068 0.0300817" rpy="1.5708 -1.6144e-15 1.5708" />
@@ -78,7 +78,7 @@ https://cad.onshape.com/documents/7715cc284bb430fe6dab4ffd/w/4fd0791b683777b02f8
       <geometry>
         <mesh filename="../stl/waveshare_mounting_plate_so101_v2.stl" />
       </geometry>
-      <material name="green" />
+      <material name="primary" />
     </visual>
     <collision>
       <origin xyz="-0.19402 -0.168267 0.0798817" rpy="1.5708 -1.35493e-14 1.5708" />
@@ -130,7 +130,7 @@ https://cad.onshape.com/documents/7715cc284bb430fe6dab4ffd/w/4fd0791b683777b02f8
       <geometry>
         <mesh filename="../stl/motor_holder_so101_base_v1.stl" />
       </geometry>
-      <material name="green" />
+      <material name="primary" />
     </visual>
     <collision>
       <origin xyz="-0.0675992 -0.000177759 0.0158499" rpy="1.5708 -1.5708 0" />
@@ -144,7 +144,7 @@ https://cad.onshape.com/documents/7715cc284bb430fe6dab4ffd/w/4fd0791b683777b02f8
       <geometry>
         <mesh filename="../stl/rotation_pitch_so101_v1.stl" />
       </geometry>
-      <material name="green" />
+      <material name="primary" />
     </visual>
     <collision>
       <origin xyz="0.0122008 2.22413e-05 0.0464" rpy="-1.5708 2.35221e-33 0" />
@@ -181,7 +181,7 @@ https://cad.onshape.com/documents/7715cc284bb430fe6dab4ffd/w/4fd0791b683777b02f8
       <geometry>
         <mesh filename="../stl/upper_arm_so101_v1.stl" />
       </geometry>
-      <material name="green" />
+      <material name="primary" />
     </visual>
     <collision>
       <origin xyz="-0.065085 0.012 0.0182" rpy="3.14159 -0 -1.30911e-30" />
@@ -204,7 +204,7 @@ https://cad.onshape.com/documents/7715cc284bb430fe6dab4ffd/w/4fd0791b683777b02f8
       <geometry>
         <mesh filename="../stl/under_arm_so101_v1.stl" />
       </geometry>
-      <material name="green" />
+      <material name="primary" />
     </visual>
     <collision>
       <origin xyz="-0.0648499 -0.032 0.0182" rpy="3.14159 -0 6.67202e-31" />
@@ -218,7 +218,7 @@ https://cad.onshape.com/documents/7715cc284bb430fe6dab4ffd/w/4fd0791b683777b02f8
       <geometry>
         <mesh filename="../stl/motor_holder_so101_wrist_v1.stl" />
       </geometry>
-      <material name="green" />
+      <material name="primary" />
     </visual>
     <collision>
       <origin xyz="-0.0648499 -0.032 0.018" rpy="-3.14159 -2.55351e-15 -2.56146e-31" />
@@ -269,7 +269,7 @@ https://cad.onshape.com/documents/7715cc284bb430fe6dab4ffd/w/4fd0791b683777b02f8
       <geometry>
         <mesh filename="../stl/wrist_roll_pitch_so101_v2.stl" />
       </geometry>
-      <material name="green" />
+      <material name="primary" />
     </visual>
     <collision>
       <origin xyz="0 -0.028 0.0181" rpy="-1.5708 -1.5708 0" />
@@ -306,7 +306,7 @@ https://cad.onshape.com/documents/7715cc284bb430fe6dab4ffd/w/4fd0791b683777b02f8
       <geometry>
         <mesh filename="../stl/wrist_roll_follower_so101_v1.stl" />
       </geometry>
-      <material name="green" />
+      <material name="primary" />
     </visual>
     <collision>
       <origin xyz="0 -0.000218214 0.000949706" rpy="-3.14159 -5.55112e-17 0" />
@@ -344,7 +344,7 @@ https://cad.onshape.com/documents/7715cc284bb430fe6dab4ffd/w/4fd0791b683777b02f8
       <geometry>
         <mesh filename="../stl/moving_jaw_so101_v1.stl" />
       </geometry>
-      <material name="green" />
+      <material name="primary" />
     </visual>
     <collision>
       <origin xyz="-5.55112e-17 0 0.0189" rpy="9.53145e-17 6.93889e-18 1.24077e-24" />

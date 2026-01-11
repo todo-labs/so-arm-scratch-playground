@@ -169,7 +169,7 @@ export function Workspace({
       onDragEnd={handleDragEnd}
     >
       <div
-        className="flex-1 relative min-h-full rounded-2xl"
+        className="relative min-h-full w-full"
         style={{
           backgroundColor: SCRATCH_THEME.workspace.backgroundColor,
         }}

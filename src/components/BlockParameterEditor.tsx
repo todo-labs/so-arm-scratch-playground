@@ -39,7 +39,7 @@ export function BlockParameterEditor({
           min={parameter.min}
           max={parameter.max}
           step={parameter.step}
-          className={`w-14 h-6 text-[11px] font-semibold bg-white/95 border border-black/10 text-slate-900 rounded-md shadow-none focus-visible:ring-2 focus-visible:ring-white/40 ${className}`}
+          className={`w-14 h-6 text-[11px] font-bold bg-white text-slate-900 rounded-full border border-black/10 shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] focus-visible:ring-2 focus-visible:ring-black/5 ${className}`}
         />
       );
 
@@ -50,7 +50,7 @@ export function BlockParameterEditor({
           value={String(value ?? parameter.defaultValue)}
           onChange={(e) => handleChange(e.target.value)}
           placeholder={parameter.placeholder}
-          className={`w-20 h-6 text-[11px] font-semibold bg-white/95 border border-black/10 text-slate-900 rounded-md shadow-none focus-visible:ring-2 focus-visible:ring-white/40 ${className}`}
+          className={`w-20 h-6 text-[11px] font-bold bg-white text-slate-900 rounded-full border border-black/10 shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] focus-visible:ring-2 focus-visible:ring-black/5 ${className}`}
         />
       );
 
@@ -61,13 +61,13 @@ export function BlockParameterEditor({
           onValueChange={handleChange}
         >
           <SelectTrigger
-            className={`w-20 h-6 text-[11px] font-semibold bg-white/95 border border-black/10 text-slate-900 rounded-md shadow-none ${className}`}
+            className={`w-auto min-w-[60px] h-6 px-3 text-[11px] font-bold bg-white text-slate-900 rounded-full border border-black/10 shadow-sm hover:bg-gray-50 transition-colors ${className}`}
           >
             <SelectValue className="text-gray-900" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="rounded-xl border-black/10">
             {parameter.options?.map((option) => (
-              <SelectItem key={option} value={option} className="text-xs text-gray-900">
+              <SelectItem key={option} value={option} className="text-xs text-gray-900 rounded-lg">
                 {option}
               </SelectItem>
             ))}

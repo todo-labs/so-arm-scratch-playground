@@ -117,6 +117,21 @@ const defaultBlocks: BlockDefinition[] = [
     ],
     codeTemplate: "if ({{condition}}) {\n  {{children}}\n}",
   },
+  {
+    id: BLOCK_IDS.WHILE_LOOP,
+    category: "control",
+    name: "while",
+    color: "hsl(38, 92%, 50%)",
+    shape: "command",
+    parameters: [
+      {
+        name: "condition",
+        type: "boolean",
+        defaultValue: true,
+      },
+    ],
+    codeTemplate: "while ({{condition}}) {\n  {{children}}\n}",
+  },
 ];
 
 // Register all default blocks

@@ -73,9 +73,10 @@ function checkConnection(isConnected?: () => boolean): void {
  * Executes a sequence of blocks with abort and connection checking support
  */
 export async function executeBlocks(
-  blocks: BlockInstance[],
+  allBlocks: BlockInstance[],
   deps: BlockExecutorDeps,
-  options: ExecuteBlocksOptions = {}
+  options: ExecuteBlocksOptions = {},
+  blocksToExecute?: BlockInstance[]
 ): Promise<void> {
   const { updateJointsDegrees, homeRobot, openGripper, closeGripper, isConnected } = deps;
   const { signal } = options;
@@ -88,15 +89,18 @@ export async function executeBlocks(
   checkAborted(signal);
   checkConnection(isConnected);
 
-  // Always home the robot before starting any program
-  if (homeRobot) {
+  // If blocksToExecute is not provided, we start with top-level blocks
+  const currentBlocks = blocksToExecute || allBlocks.filter(b => !b.parentId);
+
+  // If this is the initial call (no blocksToExecute provided), home the robot
+  if (!blocksToExecute && homeRobot) {
     log.info("Homing robot before program execution");
     await homeRobot();
     await delay(EXECUTION_CONFIG.POST_HOME_DELAY_MS, signal);
   }
 
-  // Execute the user's program blocks
-  for (const block of blocks) {
+  // Execute the blocks in the current segment
+  for (const block of currentBlocks) {
     // Check abort and connection before each block
     checkAborted(signal);
     checkConnection(isConnected);
@@ -118,6 +122,37 @@ export async function executeBlocks(
           ? block.parameters.seconds * 1000
           : parseFloat(String(block.parameters.seconds)) * 1000 || EXECUTION_CONFIG.DEFAULT_WAIT_MS;
       await delay(duration, signal);
+    } else if (block.definitionId === BLOCK_IDS.REPEAT) {
+      const times = typeof block.parameters.times === "number" ? block.parameters.times : parseInt(String(block.parameters.times)) || 1;
+      const childBlocks = allBlocks.filter(b => b.parentId === block.id);
+      
+      for (let i = 0; i < times; i++) {
+        checkAborted(signal);
+        checkConnection(isConnected);
+        await executeBlocks(allBlocks, deps, options, childBlocks);
+      }
+    } else if (block.definitionId === BLOCK_IDS.IF_CONDITION) {
+      const condition = !!block.parameters.condition;
+      if (condition) {
+        const childBlocks = allBlocks.filter(b => b.parentId === block.id);
+        await executeBlocks(allBlocks, deps, options, childBlocks);
+      }
+    } else if (block.definitionId === BLOCK_IDS.WHILE_LOOP) {
+      const childBlocks = allBlocks.filter(b => b.parentId === block.id);
+      
+      // Caution: This is a recursive execution. The condition should ideally be checked 
+      // dynamically, but since we are evaluating statically from parameters for now:
+      while ((block.parameters.condition as unknown) === true || block.parameters.condition === "true") {
+        checkAborted(signal);
+        checkConnection(isConnected);
+        await executeBlocks(allBlocks, deps, options, childBlocks);
+        
+        // Safety delay to prevent infinite fast loops
+        await delay(EXECUTION_CONFIG.INTER_BLOCK_DELAY_MS, signal);
+        
+        // Check condition again (though blocks currently are static during run)
+        if ((block.parameters.condition as unknown) === false || block.parameters.condition === "false") break;
+      }
     }
 
     // Delay between blocks (also cancellable)

@@ -218,7 +218,8 @@ export function Workspace({
                 const isControlBlock =
                   definition.category === "control" &&
                   (definition.id === BLOCK_IDS.REPEAT ||
-                    definition.id === BLOCK_IDS.IF_CONDITION);
+                    definition.id === BLOCK_IDS.IF_CONDITION ||
+                    definition.id === BLOCK_IDS.WHILE_LOOP);
 
                 return (
                   <DraggableBlock key={blockInstance.id} id={blockInstance.id}>

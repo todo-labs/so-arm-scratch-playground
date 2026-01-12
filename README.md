@@ -11,7 +11,7 @@ A kid-friendly visual programming interface for the SO-ARM101 robot arm using bl
 - 💾 **Save/Load Programs**: Export and import your programs as JSON files
 - ⚡ **Real-time Control**: See your program execute on both the virtual and physical robot
 
-![![SO-ARM Scratch Programming Interface](./public/preview.png)]
+![SO-ARM Scratch Programming Interface](./public/preview.png)
 
 ## Getting Started
 

@@ -11,14 +11,7 @@ export interface BlockParameter {
 
 export interface BlockDefinition {
   id: string;
-  category:
-    | "motion"
-    | "control"
-    | "sensing"
-    | "operators"
-    | "variables"
-    | "custom"
-    | "gripper";
+  category: "motion" | "control" | "sensing" | "operators" | "variables" | "custom" | "gripper";
   name: string;
   description?: string;
   color: string;

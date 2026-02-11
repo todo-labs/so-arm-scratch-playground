@@ -1,6 +1,6 @@
-import type { BlockDefinition } from "@/lib/types";
-import { registry } from "@/lib/blockRegistry";
 import { BLOCK_IDS } from "@/lib/blockIds";
+import { registry } from "@/lib/blockRegistry";
+import type { BlockDefinition } from "@/lib/types";
 
 const defaultBlocks: BlockDefinition[] = [
   // Motion blocks
@@ -15,14 +15,7 @@ const defaultBlocks: BlockDefinition[] = [
         name: "joint",
         type: "dropdown",
         defaultValue: "base",
-        options: [
-          "base",
-          "shoulder",
-          "elbow",
-          "wrist_flex",
-          "wrist_roll",
-          "gripper",
-        ],
+        options: ["base", "shoulder", "elbow", "wrist_flex", "wrist_roll", "gripper"],
       },
       {
         name: "angle",

@@ -1,4 +1,4 @@
-import { Play, Square, Loader2 } from "lucide-react";
+import { Loader2, Play, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { playSound } from "@/lib/theme/scratch";
 import { cn } from "@/lib/utils";
@@ -75,8 +75,7 @@ export function ExecutionControls({
             "animate-pulse"
           )}
           style={{
-            boxShadow:
-              "0 4px 0 hsl(0, 72%, 40%), 0 6px 20px rgba(239, 68, 68, 0.4)",
+            boxShadow: "0 4px 0 hsl(0, 72%, 40%), 0 6px 20px rgba(239, 68, 68, 0.4)",
           }}
         >
           <Square className="h-6 w-6 mr-2 fill-current" />

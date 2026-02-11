@@ -1,16 +1,16 @@
-import { useState, useRef, useCallback } from "react";
 import {
-  Download,
-  Upload,
-  Share2,
-  Copy,
   Check,
-  FileUp,
-  Sparkles,
-  X,
+  Copy,
+  Download,
   FileCode2,
+  FileUp,
   RefreshCw,
+  Share2,
+  Sparkles,
+  Upload,
+  X,
 } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,16 +25,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { useScratch } from "@/context/ScratchContext";
-import { playSound } from "@/lib/theme/scratch";
 import {
   exportProject,
-  importProjectFromFile,
-  generateShareableCode,
-  importFromShareableCode,
   generateRandomProjectName,
-  type ProjectData,
+  generateShareableCode,
   type ImportResult,
+  importFromShareableCode,
+  importProjectFromFile,
+  type ProjectData,
 } from "@/lib/projectIO";
+import { playSound } from "@/lib/theme/scratch";
 
 type TabType = "export" | "import" | "share";
 
@@ -58,7 +58,7 @@ export function ProjectShareDialog() {
       playSound("error");
       return;
     }
-    
+
     playSound("success");
     exportProject(blocks, {
       name: projectName,
@@ -72,7 +72,7 @@ export function ProjectShareDialog() {
       playSound("error");
       return;
     }
-    
+
     const code = generateShareableCode(blocks, {
       name: projectName,
       description: projectDescription,
@@ -92,12 +92,12 @@ export function ProjectShareDialog() {
   const handleImportFromCode = () => {
     setImportError(null);
     setImportSuccess(null);
-    
+
     const result = importFromShareableCode(importCode.trim());
     handleImportResult(result);
   };
 
-  const handleImportResult = (result: ImportResult) => {
+  const handleImportResult = useCallback((result: ImportResult) => {
     if (result.success && result.data) {
       setImportSuccess(result.data);
       playSound("success");
@@ -105,7 +105,7 @@ export function ProjectShareDialog() {
       setImportError(result.error || "Import failed");
       playSound("error");
     }
-  };
+  }, []);
 
   const handleConfirmImport = () => {
     if (importSuccess) {
@@ -116,20 +116,23 @@ export function ProjectShareDialog() {
     }
   };
 
-  const handleFileSelect = async (file: File) => {
-    setImportError(null);
-    setImportSuccess(null);
-    
-    // Check file extension
-    if (!file.name.endsWith(".json")) {
-      setImportError("Please select a .json file");
-      playSound("error");
-      return;
-    }
-    
-    const result = await importProjectFromFile(file);
-    handleImportResult(result);
-  };
+  const handleFileSelect = useCallback(
+    async (file: File) => {
+      setImportError(null);
+      setImportSuccess(null);
+
+      // Check file extension
+      if (!file.name.endsWith(".json")) {
+        setImportError("Please select a .json file");
+        playSound("error");
+        return;
+      }
+
+      const result = await importProjectFromFile(file);
+      handleImportResult(result);
+    },
+    [handleImportResult]
+  );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -143,16 +146,19 @@ export function ProjectShareDialog() {
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      handleFileSelect(files[0]);
-    }
-  }, []);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        handleFileSelect(files[0]);
+      }
+    },
+    [handleFileSelect]
+  );
 
   const resetState = () => {
     setImportError(null);
@@ -173,7 +179,13 @@ export function ProjectShareDialog() {
   ];
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetState(); }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) resetState();
+      }}
+    >
       <DialogTrigger asChild>
         <Button
           variant="ghost"
@@ -184,7 +196,7 @@ export function ProjectShareDialog() {
           <span className="font-semibold">Share</span>
         </Button>
       </DialogTrigger>
-      
+
       <DialogContent className="sm:max-w-lg bg-gradient-to-b from-white to-slate-50 border-0 shadow-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
@@ -201,8 +213,12 @@ export function ProjectShareDialog() {
         <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
           {tabs.map((tab) => (
             <button
+              type="button"
               key={tab.id}
-              onClick={() => { setActiveTab(tab.id); resetState(); }}
+              onClick={() => {
+                setActiveTab(tab.id);
+                resetState();
+              }}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
                 activeTab === tab.id
                   ? "bg-white text-slate-900 shadow-sm"
@@ -243,7 +259,7 @@ export function ProjectShareDialog() {
                   </Button>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="project-author" className="text-sm font-medium text-slate-700">
                   Your Name (optional)
@@ -256,7 +272,7 @@ export function ProjectShareDialog() {
                   className="bg-white"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="project-description" className="text-sm font-medium text-slate-700">
                   Description (optional)
@@ -291,16 +307,18 @@ export function ProjectShareDialog() {
           {activeTab === "import" && (
             <div className="space-y-4">
               {/* File Drop Zone */}
-              <div
+              <button
+                type="button"
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
+                className={`relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all w-full ${
                   isDragging
                     ? "border-blue-500 bg-blue-50"
                     : "border-slate-200 hover:border-blue-300 hover:bg-blue-50/50"
                 }`}
+                aria-label="Click or drag file to import"
               >
                 <input
                   ref={fileInputRef}
@@ -309,14 +327,14 @@ export function ProjectShareDialog() {
                   onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
                   className="hidden"
                 />
-                <FileUp className={`w-12 h-12 mx-auto mb-3 ${isDragging ? "text-blue-500" : "text-slate-400"}`} />
+                <FileUp
+                  className={`w-12 h-12 mx-auto mb-3 ${isDragging ? "text-blue-500" : "text-slate-400"}`}
+                />
                 <p className="font-medium text-slate-700">
                   {isDragging ? "Drop your file here!" : "Drag & drop a project file"}
                 </p>
-                <p className="text-sm text-slate-500 mt-1">
-                  or click to browse (.json)
-                </p>
-              </div>
+                <p className="text-sm text-slate-500 mt-1">or click to browse (.json)</p>
+              </button>
 
               {/* Divider */}
               <div className="relative">
@@ -324,7 +342,9 @@ export function ProjectShareDialog() {
                   <div className="w-full border-t border-slate-200" />
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="bg-slate-50 px-3 text-sm text-slate-500">or paste a share code</span>
+                  <span className="bg-slate-50 px-3 text-sm text-slate-500">
+                    or paste a share code
+                  </span>
                 </div>
               </div>
 
@@ -374,12 +394,12 @@ export function ProjectShareDialog() {
                           </p>
                         )}
                         <p className="text-xs text-green-600 mt-2">
-                          {importSuccess.blocks.filter(b => !b.parentId).length} blocks
+                          {importSuccess.blocks.filter((b) => !b.parentId).length} blocks
                         </p>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -395,7 +415,7 @@ export function ProjectShareDialog() {
                       Load Project
                     </Button>
                   </div>
-                  
+
                   <p className="text-xs text-center text-amber-600">
                     ⚠️ This will replace your current workspace
                   </p>
@@ -408,7 +428,8 @@ export function ProjectShareDialog() {
             <div className="space-y-4">
               <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
                 <p className="text-sm text-purple-800">
-                  <strong>Quick Share:</strong> Generate a code that others can paste to instantly load your project!
+                  <strong>Quick Share:</strong> Generate a code that others can paste to instantly
+                  load your project!
                 </p>
               </div>
 
@@ -448,9 +469,7 @@ export function ProjectShareDialog() {
 
               {shareCode && (
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700">
-                    Your Share Code
-                  </Label>
+                  <Label className="text-sm font-medium text-slate-700">Your Share Code</Label>
                   <div className="relative">
                     <Input
                       value={shareCode}

@@ -1,7 +1,5 @@
 export const parseHsl = (value: string) => {
-  const match = value
-    .replace(/\s+/g, "")
-    .match(/hsl\((\d+),(\d+)%?,(\d+)%?\)/i);
+  const match = value.replace(/\s+/g, "").match(/hsl\((\d+),(\d+)%?,(\d+)%?\)/i);
   if (!match) return null;
   return {
     h: Number(match[1]),
@@ -10,8 +8,7 @@ export const parseHsl = (value: string) => {
   };
 };
 
-export const clamp = (num: number, min: number, max: number) =>
-  Math.min(Math.max(num, min), max);
+export const clamp = (num: number, min: number, max: number) => Math.min(Math.max(num, min), max);
 
 export const shiftLightness = (value: string, delta: number) => {
   const hsl = parseHsl(value);

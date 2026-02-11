@@ -1,31 +1,44 @@
+import { Plus, X } from "lucide-react";
 import * as React from "react";
-import { X, Plus } from "lucide-react";
-import { BlockParameterEditor } from "./BlockParameterEditor";
-import type { BlockDefinition, BlockInstance } from "@/lib/types";
 import { BLOCK_IDS } from "@/lib/blockIds";
-import { SCRATCH_THEME } from "@/lib/theme/scratch";
-import { cn } from "@/lib/utils";
-import { 
-  BLOCK_CONSTANTS, 
-  getHatBlockPath, 
-  getCommandBlockPath, 
-  getReporterPath, 
-  getBooleanPath 
+import {
+  BLOCK_CONSTANTS,
+  getBooleanPath,
+  getCommandBlockPath,
+  getHatBlockPath,
+  getReporterPath,
 } from "@/lib/blockShapes";
+import { renderCategoryIcon } from "@/lib/theme/iconRenderer";
+import { SCRATCH_THEME } from "@/lib/theme/scratch";
+import type { BlockDefinition, BlockInstance } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { BlockParameterEditor } from "./BlockParameterEditor";
+
+type CategoryTheme = {
+  base: string;
+  gradient: string;
+  shadow: string;
+  text: string;
+  secondary: string;
+};
+
+function getCategoryTheme(category: string): CategoryTheme {
+  const theme = SCRATCH_THEME.colors[category as keyof typeof SCRATCH_THEME.colors];
+  return theme || SCRATCH_THEME.colors.motion;
+}
 
 interface BlockProps {
   definition: BlockDefinition;
   instance?: BlockInstance;
   isInPalette?: boolean;
-  onParameterChange?: (
-    parameterId: string,
-    value: boolean | number | string
-  ) => void;
+  onParameterChange?: (parameterId: string, value: boolean | number | string) => void;
   onRemove?: () => void;
   onAddChildBlock?: (parentId: string) => void;
   renderChildBlocks?: () => React.ReactNode;
   className?: string;
   isDragging?: boolean;
+  animationDelay?: string;
+  indexInStack?: number;
 }
 
 export function Block({
@@ -38,68 +51,75 @@ export function Block({
   renderChildBlocks,
   className = "",
   isDragging = false,
+  animationDelay,
+  indexInStack = 0,
 }: BlockProps) {
+  const calculatedDelay = animationDelay
+    ? animationDelay
+    : !isInPalette && indexInStack > 0
+      ? `${parseInt(SCRATCH_THEME.animation.short, 10) * Math.min(indexInStack, 4)}ms`
+      : SCRATCH_THEME.animation.none;
   const [dimensions, setDimensions] = React.useState({ width: 0, height: 0 });
   const contentRef = React.useRef<HTMLDivElement>(null);
-  
-  const isControlBlock = definition.category === "control" && 
-    (definition.shape === "hat" || 
-     definition.id === BLOCK_IDS.IF_CONDITION || 
-     definition.id === BLOCK_IDS.REPEAT ||
-     definition.id === BLOCK_IDS.WHILE_LOOP);
+
+  const isControlBlock =
+    definition.category === "control" &&
+    (definition.shape === "hat" ||
+      definition.id === BLOCK_IDS.IF_CONDITION ||
+      definition.id === BLOCK_IDS.REPEAT ||
+      definition.id === BLOCK_IDS.WHILE_LOOP);
 
   // Check if it's a C-block (has children / loop)
-  const isCBlock = isControlBlock && (
-    definition.id === BLOCK_IDS.IF_CONDITION || 
-    definition.id === BLOCK_IDS.REPEAT ||
-    definition.id === BLOCK_IDS.WHILE_LOOP
-  );
+  const isCBlock =
+    isControlBlock &&
+    (definition.id === BLOCK_IDS.IF_CONDITION ||
+      definition.id === BLOCK_IDS.REPEAT ||
+      definition.id === BLOCK_IDS.WHILE_LOOP);
 
-  // Get theme colors
-  const categoryTheme = (SCRATCH_THEME.colors as any)[definition.category] || SCRATCH_THEME.colors.motion;
-    
+  const categoryTheme = getCategoryTheme(definition.category);
+
   // Measure content size
   React.useEffect(() => {
     if (contentRef.current) {
       const resizeObserver = new ResizeObserver((entries) => {
-        for (let entry of entries) {
-           const rect = entry.target.getBoundingClientRect();
-           setDimensions({ 
-             width: Math.ceil(rect.width) + 2, 
-             height: Math.ceil(rect.height) 
-           });
+        for (const entry of entries) {
+          const rect = entry.target.getBoundingClientRect();
+          setDimensions({
+            width: Math.ceil(rect.width) + 2,
+            height: Math.ceil(rect.height),
+          });
         }
       });
-      
+
       resizeObserver.observe(contentRef.current);
       return () => resizeObserver.disconnect();
     }
-  }, [instance, definition, isCBlock]);
+  }, []);
 
   // Generate SVG Path
   const path = React.useMemo(() => {
     // Default dimensions if measuring not done yet
     const width = Math.max(dimensions.width || 120, BLOCK_CONSTANTS.MIN_WIDTH);
     const height = Math.max(dimensions.height || 48, BLOCK_CONSTANTS.MIN_HEIGHT);
-    
+
     if (definition.shape === "hat") {
-       return getHatBlockPath(width, height, true);
+      return getHatBlockPath(width, height, true);
     } else if (definition.shape === "cap") {
-       return getCommandBlockPath(width, height, true, false);
+      return getCommandBlockPath(width, height, true, false);
     } else if (definition.shape === "reporter") {
-       return getReporterPath(width, height);
+      return getReporterPath(width, height);
     } else if (definition.shape === "boolean") {
-       return getBooleanPath(width, height);
+      return getBooleanPath(width, height);
     } else if (isCBlock && !isInPalette) {
-       return getCommandBlockPath(width, height, true, true);
+      return getCommandBlockPath(width, height, true, true);
     } else {
-       // Standard Command Stack Block
-       return getCommandBlockPath(width, height, true, true);
+      // Standard Command Stack Block
+      return getCommandBlockPath(width, height, true, true);
     }
   }, [definition.shape, dimensions, isCBlock, isInPalette]);
 
   // Icon
-  const categoryIcon = SCRATCH_THEME.icons[definition.category as keyof typeof SCRATCH_THEME.icons];
+  const categoryIcon = renderCategoryIcon(definition.category);
 
   const renderParameters = () => {
     if (!definition.parameters.length) return null;
@@ -115,9 +135,9 @@ export function Block({
                 onChange={(value) => onParameterChange?.(param.name, value)}
               />
             ) : (
-             <span className="bg-white text-slate-900 px-3 py-1 rounded-full text-[11px] font-bold shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] border border-black/10 opacity-100 min-w-[32px] text-center h-6 flex items-center justify-center">
+              <span className="bg-white text-slate-900 px-3 py-1 rounded-full text-[11px] font-bold shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] border border-black/10 opacity-100 min-w-[32px] text-center h-6 flex items-center justify-center">
                 {param.defaultValue?.toString() || param.name}
-              </span> 
+              </span>
             )}
           </div>
         ))}
@@ -130,122 +150,227 @@ export function Block({
   const gradId = `grad-${blockId}-${definition.category}`;
 
   return (
-    <div 
+    <fieldset
+      aria-label={definition.name}
       className={cn(
         "relative select-none text-white font-bold text-sm flex flex-col items-start group",
-        isInPalette && "cursor-pointer hover:scale-105 transition-transform duration-200",
+        isInPalette && "cursor-pointer hover:scale-105",
         isDragging && "z-50 scale-105 drop-shadow-2xl opacity-90",
         className
       )}
       style={{
-        filter: isDragging ? "drop-shadow(0 12px 24px rgba(0,0,0,0.25))" : "drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
+        transform: isDragging ? "scale(1.05)" : "",
+        filter: isDragging ? `drop-shadow(${SCRATCH_THEME.shadow.xl})` : "",
+        boxShadow: isInPalette && !isDragging ? SCRATCH_THEME.shadow.md : "",
+        animationDelay: calculatedDelay,
+        transition: isDragging
+          ? ""
+          : `transform ${SCRATCH_THEME.animation.fast} ${SCRATCH_THEME.animation.easeOut}, box-shadow ${SCRATCH_THEME.animation.fast} ${SCRATCH_THEME.animation.easeOut}, filter ${SCRATCH_THEME.animation.fast} ${SCRATCH_THEME.animation.easeOut}`,
+        animation: `fadeIn ${SCRATCH_THEME.animation.normal} ${SCRATCH_THEME.animation.easeOut} ${calculatedDelay} both`,
+      }}
+      onMouseEnter={(e) => {
+        if (!isDragging && !isInPalette) {
+          e.currentTarget.style.transform = "scale(1.05)";
+          e.currentTarget.style.filter = `drop-shadow(${SCRATCH_THEME.shadow.blockHover})`;
+        } else if (!isDragging && isInPalette) {
+          e.currentTarget.style.transform = "scale(1.08)";
+          e.currentTarget.style.filter = `drop-shadow(${SCRATCH_THEME.shadow.lg})`;
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isDragging) {
+          e.currentTarget.style.transform = "";
+          e.currentTarget.style.filter = isInPalette ? "" : "";
+          e.currentTarget.style.boxShadow = isInPalette ? SCRATCH_THEME.shadow.md : "";
+        }
       }}
     >
-        {/* SVG Background Layer */}
-        <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-0">
-           <svg 
-             width={dimensions.width || "100%"} 
-             height={dimensions.height || "100%"} 
-             className="overflow-visible"
-           >
-              <defs>
-                <linearGradient id={gradId} x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor={categoryTheme.base} />
-                  <stop offset="100%" stopColor={categoryTheme.secondary || categoryTheme.base} />
-                </linearGradient>
-              </defs>
-              <path 
-                d={path} 
-                fill={`url(#${gradId})`}
-                stroke="rgba(0,0,0,0.15)"
+      {/* SVG Background Layer */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-0">
+        <svg
+          role="img"
+          aria-label={`${definition.name} block background`}
+          width={dimensions.width || "100%"}
+          height={dimensions.height || "100%"}
+          className="overflow-visible"
+        >
+          <title>{`${definition.name} block background`}</title>
+          <defs>
+            <linearGradient id={gradId} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={categoryTheme.base} stopOpacity="1" />
+              <stop
+                offset="50%"
+                stopColor={categoryTheme.secondary || categoryTheme.base}
+                stopOpacity="0.95"
+              />
+              <stop
+                offset="100%"
+                stopColor={categoryTheme.secondary || categoryTheme.base}
+                stopOpacity="1"
+              />
+            </linearGradient>
+            <filter id={`glow-${blockId}`}>
+              <feGaussianBlur stdDeviation="0.5" result="coloredBlur" />
+              <feMerge>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <path
+            d={path}
+            fill={`url(#${gradId})`}
+            stroke="rgba(0,0,0,0.12)"
+            strokeWidth={1.2}
+            style={{
+              filter: isInPalette ? `url(#glow-${blockId})` : undefined,
+            }}
+          />
+          <path
+            d={path}
+            fill="none"
+            stroke="rgba(0,0,0,0.18)"
+            strokeWidth={1}
+            strokeLinejoin="round"
+            strokeMiterlimit="2"
+            transform="translate(0, 0.5)"
+          />
+        </svg>
+      </div>
+
+      {/* Content Layer */}
+      <div
+        ref={contentRef}
+        className={cn(
+          "relative z-10 flex items-center pr-8 whitespace-nowrap min-h-[48px]",
+          definition.shape === "hat" ? "pt-5 pb-3 pl-4" : "py-3 pl-4",
+          definition.shape === "reporter" || definition.shape === "boolean"
+            ? "py-2 px-6 min-h-[32px]"
+            : ""
+        )}
+      >
+        {/* Block Name & Icon */}
+        <span
+          className="mr-2 opacity-100 drop-shadow-sm text-lg select-none inline-flex items-center justify-center transition-transform duration-150"
+          style={{
+            transformOrigin: "center",
+          }}
+        >
+          <span
+            className="group-hover:scale-125 group-hover:rotate-6 transition-transform duration-200"
+            style={{
+              transitionTimingFunction: SCRATCH_THEME.animation.easeOut,
+            }}
+          >
+            {categoryIcon}
+          </span>
+        </span>
+        <span className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] tracking-wide mr-1 font-bold text-[13px]">
+          {definition.name}
+        </span>
+        {renderParameters()}
+
+        {/* Delete Button (Contextual) */}
+        {!isInPalette && onRemove && (
+          <button
+            type="button"
+            aria-label="Delete block"
+            className="ml-4 p-1.5 rounded-full hover:bg-black/10 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            onKeyUp={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.stopPropagation();
+                onRemove();
+              }
+            }}
+            style={{
+              transitionTimingFunction: SCRATCH_THEME.animation.ease,
+            }}
+          >
+            <X
+              size={14}
+              className="text-white/80 transition-transform hover:rotate-90 duration-200"
+              style={{
+                transitionTimingFunction: SCRATCH_THEME.animation.easeOut,
+              }}
+            />
+          </button>
+        )}
+      </div>
+
+      {/* C-Block Children Container */}
+      {isCBlock && !isInPalette && (
+        <div className="flex flex-col w-full relative">
+          <div
+            className="pl-4 border-l-4 ml-4 py-1.5 min-h-[40px] rounded-r-lg mt-[-4px] mb-[4px] relative z-0 transition-all duration-200"
+            style={{
+              borderLeftColor: categoryTheme.base,
+              backgroundColor: `rgba(0, 0, 0, 0.04)`,
+              transitionTimingFunction: SCRATCH_THEME.animation.ease,
+            }}
+          >
+            {renderChildBlocks
+              ? renderChildBlocks()
+              : instance &&
+                onAddChildBlock && (
+                  <button
+                    type="button"
+                    aria-label={`Add code to ${instance.id}`}
+                    className="h-8 flex items-center text-white/50 text-xs px-2 cursor-pointer hover:bg-white/10 rounded transition-all duration-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddChildBlock(instance.id);
+                    }}
+                    onKeyUp={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.stopPropagation();
+                        onAddChildBlock(instance.id);
+                      }
+                    }}
+                    style={{
+                      transitionTimingFunction: SCRATCH_THEME.animation.ease,
+                    }}
+                  >
+                    <Plus
+                      size={14}
+                      className="mr-1.5 transition-transform hover:scale-110 duration-200"
+                      style={{
+                        transitionTimingFunction: SCRATCH_THEME.animation.easeOut,
+                      }}
+                    />
+                    <span className="font-medium">Add Code</span>
+                  </button>
+                )}
+          </div>
+
+          <div
+            className="h-4 rounded-b-lg w-[min(100%,_160px)] ml-0 opacity-90 relative z-0 flex items-center justify-center transition-all duration-200"
+            style={{
+              backgroundColor: categoryTheme.base,
+              transitionTimingFunction: SCRATCH_THEME.animation.ease,
+            }}
+          >
+            <svg
+              role="img"
+              aria-label="Block decorative element"
+              width="100%"
+              height="16"
+              className="absolute top-0 left-0 overflow-visible"
+            >
+              <title>Block decorative element</title>
+              <path
+                d={`M 14 0 L 18 4 L 26 4 L 30 0 L 100 0 a 4 4 0 0 1 4 4 L 4 4 a 4 4 0 0 1 0 -4 Z`}
+                fill={categoryTheme.secondary || categoryTheme.base}
+                stroke={categoryTheme.base}
                 strokeWidth={1}
               />
-              <path 
-                d={path} 
-                fill="none" 
-                stroke="rgba(0,0,0,0.2)" 
-                strokeWidth={2} 
-                transform="translate(0, 1)"
-              />
-           </svg>
+            </svg>
+          </div>
         </div>
-
-        {/* Content Layer */}
-        <div 
-           ref={contentRef}
-           className={cn(
-             "relative z-10 flex items-center pr-8 whitespace-nowrap min-h-[48px]", 
-             definition.shape === "hat" ? "pt-5 pb-3 pl-4" : "py-3 pl-4", 
-             definition.shape === "reporter" || definition.shape === "boolean" ? "py-2 px-6 min-h-[32px]" : ""
-           )}
-        >
-            {/* Block Name & Icon */}
-            <span className="mr-2 opacity-100 drop-shadow-sm text-lg select-none filter group-hover:scale-110 transition-transform">{categoryIcon}</span>
-            <span className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)] tracking-wide mr-1 font-bold text-[13px]">{definition.name}</span>
-            {renderParameters()}
-            
-             {/* Delete Button (Contextual) */}
-             {!isInPalette && onRemove && (
-               <div 
-                 className="ml-4 p-1 rounded-full hover:bg-black/10 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                 onClick={(e) => {
-                   e.stopPropagation();
-                   onRemove();
-                 }}
-               >
-                 <X size={14} className="text-white/80" />
-               </div>
-             )}
-        </div>
-        
-        {/* C-Block Children Container */}
-        {isCBlock && !isInPalette && (
-           <div className="flex flex-col w-full relative">
-              {/* Indent line/border? For now we just use padding. 
-                  In real scratch, the SVG stretches down around this. 
-                  Since we are treating C-blocks as Stack blocks for V1, 
-                  we render children *underneath* for now, or inside if we change shape. 
-                  
-                  Wait, if we treat it as stack block, children appear visually BELOW.
-                  That's wrong for "If" blocks.
-                  
-                  Correction: For "If", children must be nested.
-                  Since we didn't implement getCBlockPath fully, we'll mimic it 
-                  by adding a left border/margin container. 
-              */}
-              <div className="pl-4 border-l-4 border-l-black/10 ml-4 py-1 min-h-[40px] bg-black/5 rounded-r-lg mt-[-4px] mb-[4px] relative z-0">
-                  {renderChildBlocks ? renderChildBlocks() : (
-                     instance && onAddChildBlock && (
-                        <div 
-                           className="h-8 flex items-center text-white/50 text-xs px-2 cursor-pointer hover:bg-white/10 rounded"
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             onAddChildBlock(instance.id);
-                           }}
-                        >
-                           <Plus size={14} className="mr-1"/> Add Code
-                        </div>
-                     )
-                  )}
-              </div>
-              
-              {/* Bottom "End" cap of the C-Block - purely visual closing piece? 
-                  In Scratch, "If" has a bottom piece "end". 
-                  We can render a small SVG footer here. */}
-              <div className="h-4 bg-inherit rounded-b-lg w-[min(100%,_160px)] ml-0 border-t-0 opacity-90 relative z-0 flex items-center justify-center">
-                  {/* Footer content if needed */}
-                  <svg width="100%" height="16" className="absolute top-0 left-0 overflow-visible">
-                     <path d={`M 4 0 L 16 0 L 18 4 L 26 4 L 28 0 L 100 0 ...`} fill={categoryTheme.base} />
-                     {/* Simplified footer */}
-                     <path 
-                       d={`M 14 0 L 18 4 L 26 4 L 30 0 L 100 0 a 4 4 0 0 1 4 4 L 4 4 a 4 4 0 0 1 0 -4 Z`} 
-                       fill={categoryTheme.base} 
-                       stroke={categoryTheme.shadow}
-                     />
-                  </svg>
-              </div>
-           </div>
-        )}
-    </div>
+      )}
+    </fieldset>
   );
 }

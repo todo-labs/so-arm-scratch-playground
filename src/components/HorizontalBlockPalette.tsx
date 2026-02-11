@@ -1,13 +1,13 @@
-import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Block } from "./Block";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { renderCategoryIcon } from "@/lib/theme/iconRenderer";
+import { playSound, SCRATCH_THEME } from "@/lib/theme/scratch";
 
-import type { BlockDefinition, BlockCategory } from "@/lib/types";
-import { SCRATCH_THEME, playSound } from "@/lib/theme/scratch";
+import type { BlockCategory, BlockDefinition } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Block } from "./Block";
 
 interface HorizontalBlockPaletteProps {
   categories: BlockCategory[];
@@ -20,9 +20,7 @@ export function HorizontalBlockPalette({
   blocks,
   onBlockClick,
 }: HorizontalBlockPaletteProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string>(
-    categories[0]?.id || ""
-  );
+  const [selectedCategory, setSelectedCategory] = useState<string>(categories[0]?.id || "");
   const [isExpanded, setIsExpanded] = useState(true);
 
   const getBlocksByCategory = (categoryId: string) => {
@@ -30,15 +28,8 @@ export function HorizontalBlockPalette({
   };
 
   const getCategoryColor = (categoryId: string) => {
-    const theme =
-      SCRATCH_THEME.colors[categoryId as keyof typeof SCRATCH_THEME.colors];
+    const theme = SCRATCH_THEME.colors[categoryId as keyof typeof SCRATCH_THEME.colors];
     return theme?.base || "#666";
-  };
-
-  const getCategoryIcon = (categoryId: string) => {
-    return (
-      SCRATCH_THEME.icons[categoryId as keyof typeof SCRATCH_THEME.icons] || "⚡"
-    );
   };
 
   const handleCategoryClick = (categoryId: string) => {
@@ -61,10 +52,10 @@ export function HorizontalBlockPalette({
             {categories.map((category) => {
               const isActive = category.id === selectedCategory;
               const color = getCategoryColor(category.id);
-              const icon = getCategoryIcon(category.id);
 
               return (
                 <button
+                  type="button"
                   key={category.id}
                   onClick={() => handleCategoryClick(category.id)}
                   className={cn(
@@ -78,7 +69,7 @@ export function HorizontalBlockPalette({
                     background: isActive ? color : undefined,
                   }}
                 >
-                  <span className="text-lg">{icon}</span>
+                  <span className="text-lg inline-block">{renderCategoryIcon(category.id)}</span>
                   <span>{category.name}</span>
                 </button>
               );
@@ -109,10 +100,10 @@ export function HorizontalBlockPalette({
           {categories.map((category) => {
             const isActive = category.id === selectedCategory;
             const color = getCategoryColor(category.id);
-            const icon = getCategoryIcon(category.id);
 
             return (
               <button
+                type="button"
                 key={category.id}
                 onClick={() => handleCategoryClick(category.id)}
                 className={cn(
@@ -126,12 +117,10 @@ export function HorizontalBlockPalette({
                   background: isActive
                     ? `linear-gradient(135deg, ${color} 0%, ${color} 100%)`
                     : undefined,
-                  boxShadow: isActive
-                    ? `0 4px 0 ${color}88, 0 6px 16px ${color}33`
-                    : undefined,
+                  boxShadow: isActive ? `0 4px 0 ${color}88, 0 6px 16px ${color}33` : undefined,
                 }}
               >
-                <span className="text-xl">{icon}</span>
+                <span className="text-xl inline-block">{renderCategoryIcon(category.id)}</span>
                 <span>{category.name}</span>
               </button>
             );
@@ -156,13 +145,20 @@ export function HorizontalBlockPalette({
         <ScrollArea className="w-full">
           <div className="flex gap-4 pb-2">
             {selectedCategoryBlocks.map((block) => (
-              <div
+              <button
+                type="button"
                 key={block.id}
                 onClick={() => handleBlockClick(block)}
-                className="cursor-pointer hover:scale-105 active:scale-95 transition-transform flex-shrink-0"
+                onKeyUp={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    handleBlockClick(block);
+                  }
+                }}
+                className="cursor-pointer hover:scale-105 active:scale-95 transition-transform flex-shrink-0 w-full text-left"
+                aria-label={`Add ${block.name} block`}
               >
                 <Block definition={block} isInPalette={true} />
-              </div>
+              </button>
             ))}
             {selectedCategoryBlocks.length === 0 && (
               <div className="text-slate-400 text-sm py-4 flex items-center gap-2">

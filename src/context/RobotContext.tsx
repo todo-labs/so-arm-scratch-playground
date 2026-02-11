@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, type ReactNode, useContext } from "react";
 import { useRobotControl } from "@/hooks/useRobotControl";
 import { robotConfigMap } from "@/lib/robotConfig";
 import type { JointDetails, JointState } from "@/lib/types";
@@ -13,9 +13,7 @@ type RobotContextType = {
   closeGripper: () => Promise<void>;
   jointStates: JointState[];
   setJointDetails: (details: JointDetails[]) => void;
-  updateJointsDegrees: (
-    updates: { servoId: number; value: number }[]
-  ) => Promise<void>;
+  updateJointsDegrees: (updates: { servoId: number; value: number }[]) => Promise<void>;
 };
 
 const RobotContext = createContext<RobotContextType | undefined>(undefined);

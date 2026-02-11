@@ -1,4 +1,4 @@
-
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -7,7 +7,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 
 import type { BlockParameter } from "@/lib/types";
 
@@ -56,10 +55,7 @@ export function BlockParameterEditor({
 
     case "dropdown":
       return (
-        <Select
-          value={String(value ?? parameter.defaultValue)}
-          onValueChange={handleChange}
-        >
+        <Select value={String(value ?? parameter.defaultValue)} onValueChange={handleChange}>
           <SelectTrigger
             className={`w-auto min-w-[60px] h-6 px-3 text-[11px] font-bold bg-white text-slate-900 rounded-full border border-black/10 shadow-sm hover:bg-gray-50 transition-colors ${className}`}
           >

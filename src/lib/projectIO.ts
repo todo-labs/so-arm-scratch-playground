@@ -30,19 +30,114 @@ export interface ImportResult {
 }
 
 const WORD_LIST = [
-  "autumn", "hidden", "bitter", "misty", "silent", "empty", "dry", "dark", "summer",
-  "icy", "delicate", "quiet", "white", "cool", "spring", "winter", "patient",
-  "twilight", "dawn", "crimson", "wispy", "weathered", "blue", "billowing",
-  "broken", "cold", "damp", "falling", "frosty", "green", "long", "late", "lingering",
-  "bold", "little", "morning", "muddy", "old", "red", "rough", "still", "small",
-  "sparkling", "throbbing", "shy", "wandering", "withered", "wild", "black",
-  "young", "holy", "solitary", "fragrant", "aged", "snowy", "proud", "floral",
-  "restless", "divine", "polished", "ancient", "purple", "lively", "nameless",
-  "pudding", "apple", "ocean", "mountain", "river", "forest", "desert", "cloud",
-  "dream", "star", "moon", "sun", "fire", "water", "wind", "stone", "bird", "cat",
-  "dog", "lion", "tiger", "bear", "wolf", "fox", "eagle", "hawk", "owl", "whale",
-  "dolphin", "shark", "fish", "dragon", "phoenix", "unicorn", "knight", "wizard",
-  "hero", "legend", "vortex", "nebula", "galaxy", "planet", "comet", "asteroid"
+  "autumn",
+  "hidden",
+  "bitter",
+  "misty",
+  "silent",
+  "empty",
+  "dry",
+  "dark",
+  "summer",
+  "icy",
+  "delicate",
+  "quiet",
+  "white",
+  "cool",
+  "spring",
+  "winter",
+  "patient",
+  "twilight",
+  "dawn",
+  "crimson",
+  "wispy",
+  "weathered",
+  "blue",
+  "billowing",
+  "broken",
+  "cold",
+  "damp",
+  "falling",
+  "frosty",
+  "green",
+  "long",
+  "late",
+  "lingering",
+  "bold",
+  "little",
+  "morning",
+  "muddy",
+  "old",
+  "red",
+  "rough",
+  "still",
+  "small",
+  "sparkling",
+  "throbbing",
+  "shy",
+  "wandering",
+  "withered",
+  "wild",
+  "black",
+  "young",
+  "holy",
+  "solitary",
+  "fragrant",
+  "aged",
+  "snowy",
+  "proud",
+  "floral",
+  "restless",
+  "divine",
+  "polished",
+  "ancient",
+  "purple",
+  "lively",
+  "nameless",
+  "pudding",
+  "apple",
+  "ocean",
+  "mountain",
+  "river",
+  "forest",
+  "desert",
+  "cloud",
+  "dream",
+  "star",
+  "moon",
+  "sun",
+  "fire",
+  "water",
+  "wind",
+  "stone",
+  "bird",
+  "cat",
+  "dog",
+  "lion",
+  "tiger",
+  "bear",
+  "wolf",
+  "fox",
+  "eagle",
+  "hawk",
+  "owl",
+  "whale",
+  "dolphin",
+  "shark",
+  "fish",
+  "dragon",
+  "phoenix",
+  "unicorn",
+  "knight",
+  "wizard",
+  "hero",
+  "legend",
+  "vortex",
+  "nebula",
+  "galaxy",
+  "planet",
+  "comet",
+  "asteroid",
 ];
 
 /**
@@ -65,7 +160,7 @@ export function createProjectData(
   options: ExportOptions = {}
 ): ProjectData {
   const now = new Date().toISOString();
-  
+
   return {
     metadata: {
       name: options.name || generateRandomProjectName(),
@@ -100,17 +195,14 @@ function sanitizeBlockForExport(block: BlockInstance): BlockInstance {
 /**
  * Exports project data as a downloadable JSON file
  */
-export function exportProject(
-  blocks: BlockInstance[],
-  options: ExportOptions = {}
-): void {
+export function exportProject(blocks: BlockInstance[], options: ExportOptions = {}): void {
   const projectData = createProjectData(blocks, options);
   const jsonString = JSON.stringify(projectData, null, 2);
   const blob = new Blob([jsonString], { type: "application/json" });
   const url = URL.createObjectURL(blob);
-  
-  const fileName = sanitizeFileName(projectData.metadata.name) + ".json";
-  
+
+  const fileName = `${sanitizeFileName(projectData.metadata.name)}.json`;
+
   const a = document.createElement("a");
   a.href = url;
   a.download = fileName;
@@ -124,11 +216,13 @@ export function exportProject(
  * Sanitizes a filename to be valid across platforms
  */
 function sanitizeFileName(name: string): string {
-  return name
-    .replace(/[^a-zA-Z0-9-_\s]/g, "")
-    .replace(/\s+/g, "_")
-    .toLowerCase()
-    .substring(0, 50) || "project";
+  return (
+    name
+      .replace(/[^a-zA-Z0-9-_\s]/g, "")
+      .replace(/\s+/g, "_")
+      .toLowerCase()
+      .substring(0, 50) || "project"
+  );
 }
 
 /**
@@ -138,24 +232,24 @@ function validateProjectData(data: unknown): ImportResult {
   if (!data || typeof data !== "object") {
     return { success: false, error: "Invalid file format: expected an object" };
   }
-  
+
   const project = data as Record<string, unknown>;
-  
+
   // Check metadata
   if (!project.metadata || typeof project.metadata !== "object") {
     return { success: false, error: "Invalid file format: missing metadata" };
   }
-  
+
   const metadata = project.metadata as Record<string, unknown>;
   if (typeof metadata.version !== "string") {
     return { success: false, error: "Invalid file format: missing version" };
   }
-  
+
   // Check blocks
   if (!Array.isArray(project.blocks)) {
     return { success: false, error: "Invalid file format: blocks should be an array" };
   }
-  
+
   // Validate each block
   for (const block of project.blocks) {
     const blockValidation = validateBlock(block);
@@ -163,10 +257,10 @@ function validateProjectData(data: unknown): ImportResult {
       return { success: false, error: blockValidation.error };
     }
   }
-  
-  return { 
-    success: true, 
-    data: project as unknown as ProjectData 
+
+  return {
+    success: true,
+    data: project as unknown as ProjectData,
   };
 }
 
@@ -177,29 +271,29 @@ function validateBlock(block: unknown): { valid: boolean; error?: string } {
   if (!block || typeof block !== "object") {
     return { valid: false, error: "Invalid block: expected an object" };
   }
-  
+
   const b = block as Record<string, unknown>;
-  
+
   if (typeof b.id !== "string" || !b.id) {
     return { valid: false, error: "Invalid block: missing or invalid id" };
   }
-  
+
   if (typeof b.definitionId !== "string" || !b.definitionId) {
     return { valid: false, error: "Invalid block: missing or invalid definitionId" };
   }
-  
+
   if (typeof b.x !== "number" || typeof b.y !== "number") {
     return { valid: false, error: "Invalid block: x and y must be numbers" };
   }
-  
+
   if (!b.parameters || typeof b.parameters !== "object") {
     return { valid: false, error: "Invalid block: parameters must be an object" };
   }
-  
+
   if (!Array.isArray(b.children)) {
     return { valid: false, error: "Invalid block: children must be an array" };
   }
-  
+
   // Recursively validate children
   for (const child of b.children) {
     const childValidation = validateBlock(child);
@@ -207,7 +301,7 @@ function validateBlock(block: unknown): { valid: boolean; error?: string } {
       return childValidation;
     }
   }
-  
+
   return { valid: true };
 }
 
@@ -216,7 +310,7 @@ function validateBlock(block: unknown): { valid: boolean; error?: string } {
  */
 function regenerateBlockIds(blocks: BlockInstance[]): BlockInstance[] {
   const idMap = new Map<string, string>();
-  
+
   // First pass: create ID mapping
   function mapIds(blockList: BlockInstance[]) {
     for (const block of blockList) {
@@ -227,9 +321,9 @@ function regenerateBlockIds(blocks: BlockInstance[]): BlockInstance[] {
       }
     }
   }
-  
+
   mapIds(blocks);
-  
+
   // Second pass: apply new IDs and update references
   function updateIds(blockList: BlockInstance[]): BlockInstance[] {
     return blockList.map((block) => ({
@@ -241,7 +335,7 @@ function regenerateBlockIds(blocks: BlockInstance[]): BlockInstance[] {
       children: updateIds(block.children),
     }));
   }
-  
+
   return updateIds(blocks);
 }
 
@@ -252,22 +346,24 @@ export function importProjectFromString(jsonString: string): ImportResult {
   try {
     const data = JSON.parse(jsonString);
     const validation = validateProjectData(data);
-    
+
     if (!validation.success) {
       return validation;
     }
-    
+
     // Regenerate block IDs to avoid conflicts
-    const projectData = validation.data!;
-    projectData.blocks = regenerateBlockIds(projectData.blocks);
-    
-    return { success: true, data: projectData };
+    const projectData = validation.data;
+
+    if (projectData) {
+      projectData.blocks = regenerateBlockIds(projectData.blocks);
+      return { success: true, data: projectData };
+    }
+
+    return { success: false, error: "Invalid project data" };
   } catch (error) {
-    return { 
-      success: false, 
-      error: error instanceof SyntaxError 
-        ? "Invalid JSON format" 
-        : "Failed to parse file" 
+    return {
+      success: false,
+      error: error instanceof SyntaxError ? "Invalid JSON format" : "Failed to parse file",
     };
   }
 }
@@ -291,10 +387,10 @@ export async function importProjectFromFile(file: File): Promise<ImportResult> {
   try {
     const content = await readFileAsString(file);
     return importProjectFromString(content);
-  } catch (error) {
-    return { 
-      success: false, 
-      error: "Failed to read file" 
+  } catch (_error) {
+    return {
+      success: false,
+      error: "Failed to read file",
     };
   }
 }
@@ -303,7 +399,10 @@ export async function importProjectFromFile(file: File): Promise<ImportResult> {
  * Generates a shareable link (base64 encoded project data)
  * Note: For very large projects, consider using a shortened URL service
  */
-export function generateShareableCode(blocks: BlockInstance[], options: ExportOptions = {}): string {
+export function generateShareableCode(
+  blocks: BlockInstance[],
+  options: ExportOptions = {}
+): string {
   const projectData = createProjectData(blocks, options);
   const jsonString = JSON.stringify(projectData);
   return btoa(encodeURIComponent(jsonString));

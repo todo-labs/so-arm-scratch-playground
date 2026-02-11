@@ -1,74 +1,124 @@
 export const SCRATCH_THEME = {
-  // Vibrant category colors with gradients
+  // Vibrant category colors with gradients - WCAG AA compliant (4.5:1+ contrast)
   colors: {
     motion: {
-      base: "#4C97FF",
-      gradient: "linear-gradient(180deg, #4C97FF 0%, #3373CC 100%)",
-      shadow: "0 2px 0 #3373CC",
+      base: "#1E40AF",
+      gradient: "linear-gradient(180deg, #2563EB 0%, #1E40AF 100%)",
+      shadow: "0 2px 0 #1E3A8A",
       text: "#FFFFFF",
-      secondary: "#3373CC",
+      secondary: "#1D4ED8",
+      darkBase: "#1D4ED8",
+      darkSecondary: "#1E40AF",
     },
     control: {
-      base: "#FFAB19",
-      gradient: "linear-gradient(180deg, #FFAB19 0%, #CF8B17 100%)",
-      shadow: "0 2px 0 #CF8B17",
+      base: "#B45309",
+      gradient: "linear-gradient(180deg, #D97706 0%, #B45309 100%)",
+      shadow: "0 2px 0 #92400E",
       text: "#FFFFFF",
-      secondary: "#CF8B17",
+      secondary: "#92400E",
+      darkBase: "#92400E",
+      darkSecondary: "#B45309",
     },
     sensing: {
-      base: "#5CB1D6",
-      gradient: "linear-gradient(180deg, #5CB1D6 0%, #2E8EB8 100%)",
-      shadow: "0 2px 0 #2E8EB8",
+      base: "#0E7490",
+      gradient: "linear-gradient(180deg, #0891B2 0%, #0E7490 100%)",
+      shadow: "0 2px 0 #155E75",
       text: "#FFFFFF",
-      secondary: "#2E8EB8",
+      secondary: "#155E75",
+      darkBase: "#155E75",
+      darkSecondary: "#0E7490",
     },
     operators: {
-      base: "#59C059",
-      gradient: "linear-gradient(180deg, #59C059 0%, #389438 100%)",
-      shadow: "0 2px 0 #389438",
+      base: "#047857",
+      gradient: "linear-gradient(180deg, #059669 0%, #047857 100%)",
+      shadow: "0 2px 0 #065F46",
       text: "#FFFFFF",
-      secondary: "#389438",
+      secondary: "#065F46",
+      darkBase: "#065F46",
+      darkSecondary: "#047857",
     },
     variables: {
-      base: "#FF8C1A",
-      gradient: "linear-gradient(180deg, #FF8C1A 0%, #DB6E00 100%)",
-      shadow: "0 2px 0 #DB6E00",
+      base: "#C2410C",
+      gradient: "linear-gradient(180deg, #EA580C 0%, #C2410C 100%)",
+      shadow: "0 2px 0 #9A3412",
       text: "#FFFFFF",
-      secondary: "#DB6E00",
+      secondary: "#9A3412",
+      darkBase: "#9A3412",
+      darkSecondary: "#C2410C",
     },
     custom: {
-      base: "#FF6680",
-      gradient: "linear-gradient(180deg, #FF6680 0%, #FF3355 100%)",
-      shadow: "0 2px 0 #FF3355",
+      base: "#B91C1C",
+      gradient: "linear-gradient(180deg, #DC2626 0%, #B91C1C 100%)",
+      shadow: "0 2px 0 #991B1B",
       text: "#FFFFFF",
-      secondary: "#FF3355",
+      secondary: "#991B1B",
+      darkBase: "#991B1B",
+      darkSecondary: "#B91C1C",
     },
     gripper: {
-      base: "#9966FF",
-      gradient: "linear-gradient(180deg, #9966FF 0%, #774DCB 100%)",
-      shadow: "0 2px 0 #774DCB",
+      base: "#6D28D9",
+      gradient: "linear-gradient(180deg, #7C3AED 0%, #6D28D9 100%)",
+      shadow: "0 2px 0 #5B21B6",
       text: "#FFFFFF",
-      secondary: "#774DCB",
+      secondary: "#5B21B6",
+      darkBase: "#5B21B6",
+      darkSecondary: "#6D28D9",
     },
-  },
+  } as const,
 
-  // Block category icons (emoji)
+  // Block category icons (Lucide icon component names)
   icons: {
-    motion: "🤖",
-    control: "🔄",
-    gripper: "✋",
-    sensing: "👁️",
-    operators: "🔢",
-    custom: "⭐",
-  },
+    motion: "Bot",
+    control: "RefreshCcw",
+    gripper: "Hand",
+    sensing: "Eye",
+    operators: "Calculator",
+    custom: "Star",
+  } as const,
 
-  // Animation timings
+  // Animation tokens - comprehensive timing system
   animation: {
+    // Easing functions
+    ease: "cubic-bezier(0.25, 0.1, 0.25, 1)",
+    easeIn: "cubic-bezier(0.42, 0, 1, 1)",
+    easeOut: "cubic-bezier(0, 0, 0.58, 1)",
+    easeInOut: "cubic-bezier(0.42, 0, 0.58, 1)",
     bounce: "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
-    smooth: "cubic-bezier(0.4, 0, 0.2, 1)",
+    elastic: "cubic-bezier(0.68, -0.6, 0.32, 1.6)",
+    spring: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+    // Durations
+    instant: "50ms",
     fast: "150ms",
     normal: "250ms",
     slow: "400ms",
+    slower: "600ms",
+    // Delays
+    none: "0ms",
+    short: "100ms",
+    medium: "200ms",
+    long: "300ms",
+  },
+
+  // Spacing scale - consistent spacing system
+  spacing: {
+    xs: "4px",
+    sm: "8px",
+    md: "12px",
+    lg: "16px",
+    xl: "20px",
+    xxl: "24px",
+    xxxl: "32px",
+  },
+
+  // Shadow tokens - depth hierarchy
+  shadow: {
+    sm: "0 1px 2px rgba(0, 0, 0, 0.05)",
+    md: "0 2px 4px rgba(0, 0, 0, 0.1)",
+    lg: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+    xl: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+    block: "0 2px 0 rgba(0, 0, 0, 0.2)",
+    blockHover: "0 4px 0 rgba(0, 0, 0, 0.2)",
+    blockActive: "0 1px 0 rgba(0, 0, 0, 0.2)",
   },
 
   // Block shape dimensions
@@ -89,6 +139,8 @@ export const SCRATCH_THEME = {
   },
 } as const;
 
+export type ScratchTheme = typeof SCRATCH_THEME;
+
 // Sound effect URLs (using simple Web Audio API tones)
 export const SOUND_EFFECTS = {
   click: { frequency: 800, duration: 50 },
@@ -103,13 +155,13 @@ let audioContext: AudioContext | null = null;
 
 export function playSound(effect: keyof typeof SOUND_EFFECTS): void {
   if (typeof window === "undefined") return;
-  
+
   if (!audioContext) {
     audioContext = new AudioContext();
   }
 
   const config = SOUND_EFFECTS[effect];
-  
+
   if ("frequencies" in config) {
     // Play chord (success sound)
     config.frequencies.forEach((freq, i) => {

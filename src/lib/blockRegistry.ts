@@ -1,4 +1,4 @@
-import type { BlockDefinition, BlockCategory } from "@/lib/types";
+import type { BlockCategory, BlockDefinition } from "@/lib/types";
 
 export class BlockRegistry {
   private static instance: BlockRegistry;
@@ -25,9 +25,7 @@ export class BlockRegistry {
   }
 
   getBlocksByCategory(categoryId: string): BlockDefinition[] {
-    return Array.from(this.blocks.values()).filter(
-      (block) => block.category === categoryId
-    );
+    return Array.from(this.blocks.values()).filter((block) => block.category === categoryId);
   }
 
   getAllBlocks(): BlockDefinition[] {
@@ -45,21 +43,21 @@ registry.registerCategory({
   id: "motion",
   name: "Motion",
   color: "hsl(217, 91%, 60%)",
-  icon: "🏃",
+  icon: "Bot",
 });
 
 registry.registerCategory({
   id: "control",
   name: "Control",
   color: "hsl(38, 92%, 50%)",
-  icon: "🔄",
+  icon: "RefreshCcw",
 });
 
 registry.registerCategory({
   id: "gripper",
   name: "Gripper",
   color: "hsl(120, 60%, 60%)",
-  icon: "🤏",
+  icon: "Hand",
 });
 
 export { registry };

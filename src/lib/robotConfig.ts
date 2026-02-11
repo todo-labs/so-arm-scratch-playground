@@ -1,4 +1,4 @@
-import { JointDetails } from "./types";
+import type { JointDetails } from "./types";
 
 type CameraSettings = {
   position: [number, number, number];

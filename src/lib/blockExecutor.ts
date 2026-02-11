@@ -1,8 +1,8 @@
-import { BlockInstance } from "./types";
-import { parseBlocksForCommands } from "./utils";
 import { BLOCK_IDS } from "./blockIds";
 import { EXECUTION_CONFIG } from "./executionConfig";
 import { logger } from "./logger";
+import type { BlockInstance } from "./types";
+import { parseBlocksForCommands } from "./utils";
 
 const log = logger.scope("BlockExecutor");
 
@@ -44,10 +44,14 @@ function delay(ms: number, signal?: AbortSignal): Promise<void> {
 
     const timeout = setTimeout(resolve, ms);
 
-    signal?.addEventListener("abort", () => {
-      clearTimeout(timeout);
-      reject(new ExecutionAbortedError());
-    }, { once: true });
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timeout);
+        reject(new ExecutionAbortedError());
+      },
+      { once: true }
+    );
   });
 }
 
@@ -90,7 +94,7 @@ export async function executeBlocks(
   checkConnection(isConnected);
 
   // If blocksToExecute is not provided, we start with top-level blocks
-  const currentBlocks = blocksToExecute || allBlocks.filter(b => !b.parentId);
+  const currentBlocks = blocksToExecute || allBlocks.filter((b) => !b.parentId);
 
   // If this is the initial call (no blocksToExecute provided), home the robot
   if (!blocksToExecute && homeRobot) {
@@ -123,9 +127,12 @@ export async function executeBlocks(
           : parseFloat(String(block.parameters.seconds)) * 1000 || EXECUTION_CONFIG.DEFAULT_WAIT_MS;
       await delay(duration, signal);
     } else if (block.definitionId === BLOCK_IDS.REPEAT) {
-      const times = typeof block.parameters.times === "number" ? block.parameters.times : parseInt(String(block.parameters.times)) || 1;
-      const childBlocks = allBlocks.filter(b => b.parentId === block.id);
-      
+      const times =
+        typeof block.parameters.times === "number"
+          ? block.parameters.times
+          : parseInt(String(block.parameters.times), 10) || 1;
+      const childBlocks = allBlocks.filter((b) => b.parentId === block.id);
+
       for (let i = 0; i < times; i++) {
         checkAborted(signal);
         checkConnection(isConnected);
@@ -134,24 +141,31 @@ export async function executeBlocks(
     } else if (block.definitionId === BLOCK_IDS.IF_CONDITION) {
       const condition = !!block.parameters.condition;
       if (condition) {
-        const childBlocks = allBlocks.filter(b => b.parentId === block.id);
+        const childBlocks = allBlocks.filter((b) => b.parentId === block.id);
         await executeBlocks(allBlocks, deps, options, childBlocks);
       }
     } else if (block.definitionId === BLOCK_IDS.WHILE_LOOP) {
-      const childBlocks = allBlocks.filter(b => b.parentId === block.id);
-      
-      // Caution: This is a recursive execution. The condition should ideally be checked 
+      const childBlocks = allBlocks.filter((b) => b.parentId === block.id);
+
+      // Caution: This is a recursive execution. The condition should ideally be checked
       // dynamically, but since we are evaluating statically from parameters for now:
-      while ((block.parameters.condition as unknown) === true || block.parameters.condition === "true") {
+      while (
+        (block.parameters.condition as unknown) === true ||
+        block.parameters.condition === "true"
+      ) {
         checkAborted(signal);
         checkConnection(isConnected);
         await executeBlocks(allBlocks, deps, options, childBlocks);
-        
+
         // Safety delay to prevent infinite fast loops
         await delay(EXECUTION_CONFIG.INTER_BLOCK_DELAY_MS, signal);
-        
+
         // Check condition again (though blocks currently are static during run)
-        if ((block.parameters.condition as unknown) === false || block.parameters.condition === "false") break;
+        if (
+          (block.parameters.condition as unknown) === false ||
+          block.parameters.condition === "false"
+        )
+          break;
       }
     }
 

@@ -1,13 +1,12 @@
-
+import { Plus, X } from "lucide-react";
 import { useState } from "react";
-import { X, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { renderCategoryIcon } from "@/lib/theme/iconRenderer";
+import type { BlockCategory, BlockDefinition } from "@/lib/types";
 import { Block } from "./Block";
-
-import type { BlockDefinition, BlockCategory } from "@/lib/types";
 
 interface ChildBlockSelectorProps {
   categories: BlockCategory[];
@@ -30,8 +29,7 @@ export function ChildBlockSelector({
   const getChildCompatibleBlocks = (categoryId: string) => {
     return blocks.filter(
       (block) =>
-        block.category === categoryId &&
-        (block.shape === "command" || block.shape === "hat")
+        block.category === categoryId && (block.shape === "command" || block.shape === "hat")
     );
   };
 
@@ -58,6 +56,7 @@ export function ChildBlockSelector({
 
                   return (
                     <button
+                      type="button"
                       key={category.id}
                       onClick={() => setSelectedCategory(category.id)}
                       className={`w-full p-2 rounded text-xs flex flex-col items-center gap-1 transition-colors ${
@@ -66,10 +65,10 @@ export function ChildBlockSelector({
                           : "hover:bg-gray-100"
                       }`}
                     >
-                      <span className="text-sm">{category.icon}</span>
-                      <span className="text-center leading-tight">
-                        {category.name}
+                      <span className="text-sm inline-block">
+                        {renderCategoryIcon(category.id)}
                       </span>
+                      <span className="text-center leading-tight">{category.name}</span>
                     </button>
                   );
                 })}
@@ -88,13 +87,20 @@ export function ChildBlockSelector({
                   </div>
                 ) : (
                   selectedCategoryBlocks.map((block) => (
-                    <div
+                    <button
+                      type="button"
                       key={block.id}
                       onClick={() => onBlockSelect(block)}
-                      className="cursor-pointer hover:scale-105 transition-transform"
+                      onKeyUp={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          onBlockSelect(block);
+                        }
+                      }}
+                      className="cursor-pointer hover:scale-105 transition-transform w-full text-left"
+                      aria-label={`Add ${block.name} block`}
                     >
                       <Block definition={block} isInPalette={true} />
-                    </div>
+                    </button>
                   ))
                 )}
               </div>

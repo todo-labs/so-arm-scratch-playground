@@ -1,15 +1,12 @@
+import { OrbitControls } from "@react-three/drei";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { useFrame, useThree } from "@react-three/fiber";
-import URDFLoader, { URDFRobot, URDFJoint } from "urdf-loader";
-import { OrbitControls } from "@react-three/drei";
-
-import { GroundPlane } from "./GroundPlane";
-
+import URDFLoader, { type URDFJoint, type URDFRobot } from "urdf-loader";
 import { robotConfigMap } from "@/lib/robotConfig";
-import { JointState, JointDetails } from "@/lib/types";
+import type { JointDetails, JointState } from "@/lib/types";
 import { degreesToRadians } from "@/lib/utils";
-
+import { GroundPlane } from "./GroundPlane";
 
 type RobotSceneProps = {
   robotName: string;
@@ -45,23 +42,14 @@ export function RobotScene({
                   joint
                 ): joint is URDFJoint & {
                   jointType: "revolute" | "continuous";
-                } =>
-                  joint.jointType === "revolute" ||
-                  joint.jointType === "continuous"
+                } => joint.jointType === "revolute" || joint.jointType === "continuous"
               )
               .map((joint) => ({
                 name: joint.name,
-                servoId:
-                  robotConfigMap[robotName]?.jointNameIdMap?.[joint.name] ?? -1,
+                servoId: robotConfigMap[robotName]?.jointNameIdMap?.[joint.name] ?? -1,
                 limit: {
-                  lower:
-                    joint.limit.lower === undefined
-                      ? undefined
-                      : Number(joint.limit.lower),
-                  upper:
-                    joint.limit.upper === undefined
-                      ? undefined
-                      : Number(joint.limit.upper),
+                  lower: joint.limit.lower === undefined ? undefined : Number(joint.limit.lower),
+                  upper: joint.limit.upper === undefined ? undefined : Number(joint.limit.upper),
                 },
                 jointType: joint.jointType,
               }))
@@ -69,7 +57,9 @@ export function RobotScene({
         setJointDetails(details);
 
         robot.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / -2);
-        robot.traverse((c) => (c.castShadow = true));
+        robot.traverse((c) => {
+          c.castShadow = true;
+        });
         robot.updateMatrixWorld(true);
         const scale = 15;
         robot.scale.set(scale, scale, scale);
@@ -81,14 +71,11 @@ export function RobotScene({
   }, [robotName, urdfUrl, setJointDetails, scene]);
 
   useFrame(() => {
-    if (robotRef.current && robotRef.current.joints) {
+    if (robotRef.current?.joints) {
       jointStates.forEach((state) => {
-        const jointObj = robotRef.current!.joints[state.name];
+        const jointObj = robotRef.current?.joints[state.name];
         if (jointObj) {
-          if (
-            typeof state.degrees === "number" &&
-            jointObj.jointType !== "continuous"
-          ) {
+          if (typeof state.degrees === "number" && jointObj.jointType !== "continuous") {
             jointObj.setJointValue(degreesToRadians(state.degrees));
           } else if (
             state.speed !== undefined &&

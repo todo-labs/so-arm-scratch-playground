@@ -1,15 +1,9 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useRef,
-  ReactNode,
-} from "react";
+import type React from "react";
+import { createContext, type ReactNode, useCallback, useContext, useRef, useState } from "react";
 import type { UpdateJointsDegrees } from "@/hooks/useRobotControl";
-import type { BlockDefinition, BlockInstance } from "@/lib/types";
-import { executeBlocks, ExecutionAbortedError, ConnectionLostError } from "@/lib/blockExecutor";
+import { ConnectionLostError, ExecutionAbortedError, executeBlocks } from "@/lib/blockExecutor";
 import { logger } from "@/lib/logger";
+import type { BlockDefinition, BlockInstance } from "@/lib/types";
 
 const log = logger.scope("Scratch");
 
@@ -22,11 +16,7 @@ type ScratchContextType = {
   setGeneratedCode: React.Dispatch<React.SetStateAction<string>>;
   handleBlockClick: (definition: BlockDefinition) => void;
   handleAddChildBlock: (parentId: string, definition: BlockDefinition) => void;
-  handleBlockUpdate: (
-    id: string,
-    param: string,
-    value: boolean | number | string
-  ) => void;
+  handleBlockUpdate: (id: string, param: string, value: boolean | number | string) => void;
   handleBlockRemove: (id: string) => void;
   handleRunCode: () => void;
   handleStopCode: () => void;
@@ -71,43 +61,44 @@ export function ScratchProvider({
       definitionId: definition.id,
       x: 0,
       y: 0,
-      parameters: definition.parameters.reduce<Record<string, boolean | number | string>>((acc, p) => {
-        acc[p.name] = p.defaultValue;
-        return acc;
-      }, {}),
+      parameters: definition.parameters.reduce<Record<string, boolean | number | string>>(
+        (acc, p) => {
+          acc[p.name] = p.defaultValue;
+          return acc;
+        },
+        {}
+      ),
       children: [],
       isSnapped: false,
     };
     setBlocks((prev) => [...prev, newBlock]);
   }, []);
 
-  const handleAddChildBlock = useCallback(
-    (parentId: string, definition: BlockDefinition) => {
-      const newChild: BlockInstance = {
-        id: `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        definitionId: definition.id,
-        x: 0,
-        y: 0,
-        parameters: definition.parameters.reduce<Record<string, boolean | number | string>>((acc, p) => {
+  const handleAddChildBlock = useCallback((parentId: string, definition: BlockDefinition) => {
+    const newChild: BlockInstance = {
+      id: `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      definitionId: definition.id,
+      x: 0,
+      y: 0,
+      parameters: definition.parameters.reduce<Record<string, boolean | number | string>>(
+        (acc, p) => {
           acc[p.name] = p.defaultValue;
           return acc;
-        }, {}),
-        children: [],
-        parentId,
-        isSnapped: false,
-      };
-      setBlocks((prev) => [...prev, newChild]);
-    },
-    []
-  );
+        },
+        {}
+      ),
+      children: [],
+      parentId,
+      isSnapped: false,
+    };
+    setBlocks((prev) => [...prev, newChild]);
+  }, []);
 
   const handleBlockUpdate = useCallback(
     (id: string, param: string, value: boolean | number | string) => {
       setBlocks((prev) =>
         prev.map((b) =>
-          b.id === id
-            ? { ...b, parameters: { ...b.parameters, [param]: value } }
-            : b
+          b.id === id ? { ...b, parameters: { ...b.parameters, [param]: value } } : b
         )
       );
     },

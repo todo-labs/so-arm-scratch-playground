@@ -9,18 +9,12 @@ interface DraggableBlockProps {
   disabled?: boolean;
 }
 
-export function DraggableBlock({
-  id,
-  children,
-  data,
-  disabled = false,
-}: DraggableBlockProps) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({
-      id,
-      data,
-      disabled,
-    });
+export function DraggableBlock({ id, children, data, disabled = false }: DraggableBlockProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id,
+    data,
+    disabled,
+  });
 
   const style = {
     transform: CSS.Translate.toString(transform),

@@ -13,10 +13,7 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 };
 
 // Default to 'info' in production, 'debug' in development
-const DEFAULT_LEVEL: LogLevel = 
-  import.meta.env?.MODE === "development" 
-    ? "debug" 
-    : "info";
+const DEFAULT_LEVEL: LogLevel = import.meta.env?.MODE === "development" ? "debug" : "info";
 
 let currentLevel: LogLevel = DEFAULT_LEVEL;
 
@@ -39,12 +36,13 @@ function shouldLog(level: LogLevel): boolean {
   return LOG_LEVELS[level] >= LOG_LEVELS[currentLevel];
 }
 
-function formatMessage(level: Exclude<LogLevel, "none">, context: string, message: string): string[] {
+function formatMessage(
+  level: Exclude<LogLevel, "none">,
+  context: string,
+  message: string
+): string[] {
   const timestamp = new Date().toLocaleTimeString();
-  return [
-    `%c${PREFIXES[level]} [${timestamp}] [${context}] ${message}`,
-    STYLES[level],
-  ];
+  return [`%c${PREFIXES[level]} [${timestamp}] [${context}] ${message}`, STYLES[level]];
 }
 
 export const logger = {

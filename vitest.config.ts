@@ -28,7 +28,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json", "html"],
       include: ["src/**/*.{ts,tsx}"],
-      exclude: ["node_modules", "dist"],
+      exclude: ["node_modules", "dist", "src/hooks/__tests__/useRobotControl.test.ts"],
       thresholds: {
         lines: 80,
         functions: 80,

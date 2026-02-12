@@ -231,14 +231,15 @@ describe("useRobotControl", () => {
     });
 
     it("should handle connection errors", async () => {
-      // Access the connect method from a mocked instance
-      const mockInstance = new ScsServoSDK();
-      mockInstance.connect.mockRejectedValue(new Error("Connection failed"));
+      const connectSpy = vi
+        .spyOn(ScsServoSDK.prototype, "connect")
+        .mockRejectedValue(new Error("Connection failed"));
 
       const { result } = renderHook(() => useRobotControl(testJointDetails));
 
       await expect(result.current.connectRobot()).rejects.toThrow();
       expect(result.current.isConnected).toBe(false);
+      expect(connectSpy).toHaveBeenCalled();
     });
   });
 

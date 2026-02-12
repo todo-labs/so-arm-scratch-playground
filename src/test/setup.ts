@@ -2,7 +2,6 @@ import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 import "@testing-library/jest-dom";
 
-// Mock problematic path aliases that components use
 vi.mock("@/lib/blockIds", () => ({
   BLOCK_IDS: {
     MOVE_TO: "move_to",
@@ -176,7 +175,7 @@ vi.mock("@/components/ProjectShareDialog", () => ({
 }));
 
 // Polyfill for ResizeObserver which is used by the Block component
-global.ResizeObserver = class ResizeObserver {
+globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}

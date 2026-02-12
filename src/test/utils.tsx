@@ -64,6 +64,36 @@ export const defaultBlockDefinitions: BlockDefinition[] = [
     codeTemplate: "for (let i = 0; i < {{times}}; i++) {\n  {{children}}\n}",
   },
   {
+    id: "if_condition",
+    category: "control",
+    name: "if then",
+    color: "hsl(38, 92%, 50%)",
+    shape: "command",
+    parameters: [
+      {
+        name: "condition",
+        type: "boolean",
+        defaultValue: true,
+      },
+    ],
+    codeTemplate: "if ({{condition}}) {\n  {{children}}\n}",
+  },
+  {
+    id: "while_loop",
+    category: "control",
+    name: "while",
+    color: "hsl(38, 92%, 50%)",
+    shape: "command",
+    parameters: [
+      {
+        name: "condition",
+        type: "boolean",
+        defaultValue: true,
+      },
+    ],
+    codeTemplate: "while ({{condition}}) {\n  {{children}}\n}",
+  },
+  {
     id: "open_gripper",
     category: "gripper",
     name: "open gripper",

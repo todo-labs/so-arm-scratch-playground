@@ -13,6 +13,12 @@ vi.mock("@/lib/blockExecutor", () => ({
       this.name = "ExecutionAbortedError";
     }
   },
+  ExecutionLimitError: class ExecutionLimitError extends Error {
+    constructor(message = "Execution stopped due to safety limits") {
+      super(message);
+      this.name = "ExecutionLimitError";
+    }
+  },
   ConnectionLostError: class ConnectionLostError extends Error {
     constructor(message = "Robot connection lost during execution") {
       super(message);

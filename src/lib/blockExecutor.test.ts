@@ -3,6 +3,7 @@ import {
   type BlockExecutorDeps,
   ConnectionLostError,
   ExecutionAbortedError,
+  ExecutionLimitError,
   executeBlocks,
 } from "./blockExecutor";
 import type { BlockInstance } from "./types";
@@ -67,6 +68,12 @@ describe("Block Executor", () => {
       const error = new ConnectionLostError("Connection gone");
       expect(error.name).toBe("ConnectionLostError");
       expect(error.message).toBe("Connection gone");
+    });
+
+    it("should create ExecutionLimitError with correct name", () => {
+      const error = new ExecutionLimitError();
+      expect(error.name).toBe("ExecutionLimitError");
+      expect(error.message).toBe("Execution stopped due to safety limits");
     });
   });
 
@@ -228,6 +235,36 @@ describe("Block Executor", () => {
       await executeBlocks(blocks, deps, {}, blocks);
 
       expect(childBlock.parameters.seconds).toBeDefined();
+    });
+  });
+
+  describe("If Else Block", () => {
+    it("should execute then branch when condition is true", async () => {
+      const ifElseBlock = createBlockInstance("if_else", { condition: true });
+      const thenBlock = createBlockInstance("open_gripper", {}, ifElseBlock.id);
+      const elseBlock: BlockInstance = {
+        ...createBlockInstance("close_gripper", {}, ifElseBlock.id),
+        childSlot: "else",
+      };
+
+      await executeBlocks([ifElseBlock, thenBlock, elseBlock], deps, {}, [ifElseBlock]);
+
+      expect(mockOpenGripper).toHaveBeenCalledTimes(1);
+      expect(mockCloseGripper).not.toHaveBeenCalled();
+    });
+
+    it("should execute else branch when condition is false", async () => {
+      const ifElseBlock = createBlockInstance("if_else", { condition: false });
+      const thenBlock = createBlockInstance("open_gripper", {}, ifElseBlock.id);
+      const elseBlock: BlockInstance = {
+        ...createBlockInstance("close_gripper", {}, ifElseBlock.id),
+        childSlot: "else",
+      };
+
+      await executeBlocks([ifElseBlock, thenBlock, elseBlock], deps, {}, [ifElseBlock]);
+
+      expect(mockCloseGripper).toHaveBeenCalledTimes(1);
+      expect(mockOpenGripper).not.toHaveBeenCalled();
     });
   });
 });

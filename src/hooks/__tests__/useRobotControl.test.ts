@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { ScsServoSDK } from "feetech.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { JointDetails } from "@/lib/types/robot";
@@ -7,6 +7,7 @@ import type { JointDetails } from "@/lib/types/robot";
 vi.mock("@/lib/utils", () => ({
   servoPositionToAngle: vi.fn(),
   degreesToServoPosition: vi.fn(),
+  radiansToDegrees: vi.fn((radians: number) => (radians * 180) / Math.PI),
 }));
 
 // Mock feetech.js BEFORE importing ScsServoSDK
@@ -244,6 +245,27 @@ describe("useRobotControl", () => {
 
       expect(result.current.jointStates[4].speed).toBe(50);
       expect(result.current.jointStates[3].speed).toBe(75);
+    });
+  });
+
+  describe("joint limit normalization", () => {
+    it("should clamp using degree-equivalent values when limits are provided in radians", async () => {
+      const radianLimitJointDetails: JointDetails[] = [
+        {
+          name: "base",
+          servoId: 1,
+          jointType: "revolute",
+          limit: { lower: 1.22014, upper: 5.05986 },
+        },
+      ];
+      const { result } = renderHook(() => useRobotControl(radianLimitJointDetails));
+
+      await act(async () => {
+        await result.current.updateJointsDegrees([{ servoId: 1, value: 75 }]);
+      });
+
+      const baseState = result.current.jointStates.find((joint) => joint.servoId === 1);
+      expect(baseState?.targetDegrees).toBeCloseTo(75, 3);
     });
   });
 });

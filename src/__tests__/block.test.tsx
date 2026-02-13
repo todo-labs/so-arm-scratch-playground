@@ -14,6 +14,7 @@ vi.mock("../lib/blockIds", () => ({
     CLOSE_GRIPPER: "close_gripper",
     HOME_ROBOT: "home_robot",
     IF_CONDITION: "if_condition",
+    IF_ELSE: "if_else",
     WHILE_LOOP: "while_loop",
   },
 }));
@@ -98,14 +99,14 @@ describe("Block Component", () => {
       expect(blockElement?.className).toContain("cursor-pointer");
     });
 
-    it("should apply hover scale effect in palette", () => {
+    it("should not apply hover scale effect in palette", () => {
       const definition = getDefinition("move_to");
       if (!definition) return;
 
       const { container } = render(<Block definition={definition} isInPalette={true} />);
 
       const blockElement = container.querySelector(".relative");
-      expect(blockElement?.className).toContain("hover:scale-105");
+      expect(blockElement?.className).not.toContain("hover:scale-105");
     });
   });
 

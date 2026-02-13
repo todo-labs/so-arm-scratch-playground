@@ -44,6 +44,7 @@
         "@types/react-dom": "^19.2.3",
         "@types/three": "^0.182.0",
         "@vitejs/plugin-react": "^4.3.4",
+        "global-jsdom": "^28.0.0",
         "husky": "^9.1.7",
         "jsdom": "^28.0.0",
         "lint-staged": "^16.2.7",
@@ -574,6 +575,8 @@
     "get-east-asian-width": ["get-east-asian-width@1.4.0", "", {}, "sha512-QZjmEOC+IT1uk6Rx0sX22V6uHWVwbdbxf1faPqJ1QhLdGgsRGCZoyaQBm/piRdJy/D2um6hM1UP7ZEeQ4EkP+Q=="],
 
     "get-nonce": ["get-nonce@1.0.1", "", {}, "sha512-FJhYRoDaiatfEkUK8HKlicmu/3SGFD51q3itKDGoSTysQJBnfOcxU5GxnhE1E6soB76MbT0MBtnKJuXyAx+96Q=="],
+
+    "global-jsdom": ["global-jsdom@28.0.0", "", { "peerDependencies": { "jsdom": ">=28 <29" } }, "sha512-G0uJuTt17fnWWoIOxgXTANKwMzlrQehWH5qyD+mJ+C4vT1PaAhtU2UBwDD+mRZaHoMObhwXdt3kbXLgZaPHLpQ=="],
 
     "globrex": ["globrex@0.1.2", "", {}, "sha512-uHJgbwAMwNFf5mLst7IWLNg14x1CkeqglJb/K3doi4dw6q2IvAAmM/Y81kevy83wP+Sst+nutFTYOGg3d1lsxg=="],
 

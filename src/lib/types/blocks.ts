@@ -29,6 +29,7 @@ export interface BlockInstance {
   parameters: Record<string, boolean | number | string>;
   children: BlockInstance[];
   parentId?: string;
+  childSlot?: "then" | "else";
   nextId?: string;
   previousId?: string;
   isSnapped: boolean;

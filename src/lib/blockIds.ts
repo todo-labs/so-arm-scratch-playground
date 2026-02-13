@@ -6,7 +6,9 @@ export const BLOCK_IDS = {
   WAIT_SECONDS: "wait_seconds",
   REPEAT: "repeat",
   IF_CONDITION: "if_condition",
+  IF_ELSE: "if_else",
   WHILE_LOOP: "while_loop",
+  FOREVER: "forever",
 } as const;
 
 export type BlockId = (typeof BLOCK_IDS)[keyof typeof BLOCK_IDS];

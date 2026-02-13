@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 interface ExecutionControlsProps {
   isRunning: boolean;
   isConnected: boolean;
-  onRun: () => void;
+  onRun: (options?: { simulate?: boolean }) => void;
   onStop: () => void;
   className?: string;
 }
@@ -20,7 +20,7 @@ export function ExecutionControls({
 }: ExecutionControlsProps) {
   const handleRun = () => {
     playSound("success");
-    onRun();
+    onRun({ simulate: !isConnected });
   };
 
   const handleStop = () => {
@@ -33,7 +33,7 @@ export function ExecutionControls({
       {/* Run Button */}
       <Button
         onClick={handleRun}
-        disabled={isRunning || !isConnected}
+        disabled={isRunning}
         className={cn(
           "h-14 px-8 text-lg font-bold rounded-2xl shadow-lg",
           "transition-all duration-200",
@@ -57,7 +57,7 @@ export function ExecutionControls({
         ) : (
           <>
             <Play className="h-6 w-6 mr-2 fill-current" />
-            Run Program
+            {isConnected ? "Run Program" : "Simulate Program"}
           </>
         )}
       </Button>
@@ -83,16 +83,8 @@ export function ExecutionControls({
         </Button>
       )}
 
-      {/* Connection status indicator */}
-      {!isConnected && (
-        <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-4 py-2 rounded-full border border-amber-200">
-          <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-          <span className="text-sm font-medium">Robot not connected</span>
-        </div>
-      )}
-
       {isConnected && !isRunning && (
-        <div className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-full border border-green-200">
+        <div className="flex items-center gap-2 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950 px-4 py-2 rounded-full border border-green-200 dark:border-green-800">
           <div className="w-2 h-2 rounded-full bg-green-500" />
           <span className="text-sm font-medium">Ready</span>
         </div>

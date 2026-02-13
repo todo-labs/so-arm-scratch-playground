@@ -8,6 +8,7 @@ import {
   getHatBlockPath,
   getReporterPath,
 } from "@/lib/blockShapes";
+import { clampMoveJointAngle, getMoveJointLimits } from "@/lib/jointLimits";
 import { renderCategoryIcon } from "@/lib/theme/iconRenderer";
 import { SCRATCH_THEME } from "@/lib/theme/scratch";
 import type { BlockDefinition, BlockInstance } from "@/lib/types";
@@ -21,6 +22,10 @@ type CategoryTheme = {
   text: string;
   secondary: string;
 };
+
+function hasChildrenSlot(definition: BlockDefinition): boolean {
+  return definition.codeTemplate.includes("{{children}}");
+}
 
 function getCategoryTheme(category: string): CategoryTheme {
   const theme = SCRATCH_THEME.colors[category as keyof typeof SCRATCH_THEME.colors];
@@ -66,17 +71,33 @@ export function Block({
     definition.category === "control" &&
     (definition.shape === "hat" ||
       definition.id === BLOCK_IDS.IF_CONDITION ||
+      definition.id === BLOCK_IDS.IF_ELSE ||
       definition.id === BLOCK_IDS.REPEAT ||
-      definition.id === BLOCK_IDS.WHILE_LOOP);
+      definition.id === BLOCK_IDS.WHILE_LOOP ||
+      definition.id === BLOCK_IDS.FOREVER);
 
   // Check if it's a C-block (has children / loop)
-  const isCBlock =
-    isControlBlock &&
-    (definition.id === BLOCK_IDS.IF_CONDITION ||
-      definition.id === BLOCK_IDS.REPEAT ||
-      definition.id === BLOCK_IDS.WHILE_LOOP);
+  const isCBlock = isControlBlock && hasChildrenSlot(definition);
 
   const categoryTheme = getCategoryTheme(definition.category);
+
+  React.useEffect(() => {
+    if (!instance || !onParameterChange || definition.id !== BLOCK_IDS.MOVE_TO) {
+      return;
+    }
+
+    const joint =
+      typeof instance.parameters.joint === "string"
+        ? instance.parameters.joint
+        : String(instance.parameters.joint ?? "base");
+    const angle = Number(instance.parameters.angle);
+    if (Number.isNaN(angle)) return;
+
+    const boundedAngle = clampMoveJointAngle(joint, angle);
+    if (boundedAngle !== angle) {
+      onParameterChange("angle", boundedAngle);
+    }
+  }, [definition.id, instance, onParameterChange]);
 
   // Measure content size
   React.useEffect(() => {
@@ -129,11 +150,31 @@ export function Block({
         {definition.parameters.map((param) => (
           <div key={param.name} className="flex items-center gap-1.5 align-middle">
             {!isInPalette && instance ? (
-              <BlockParameterEditor
-                parameter={param}
-                value={instance.parameters[param.name]}
-                onChange={(value) => onParameterChange?.(param.name, value)}
-              />
+              (() => {
+                const isMoveAngleParam =
+                  definition.id === BLOCK_IDS.MOVE_TO && param.name === "angle";
+                const selectedJoint =
+                  typeof instance.parameters.joint === "string"
+                    ? instance.parameters.joint
+                    : String(instance.parameters.joint ?? "base");
+                const limits = isMoveAngleParam ? getMoveJointLimits(selectedJoint) : undefined;
+
+                return (
+                  <BlockParameterEditor
+                    parameter={param}
+                    value={instance.parameters[param.name]}
+                    min={limits?.min}
+                    max={limits?.max}
+                    onChange={(value) => {
+                      if (isMoveAngleParam && typeof value === "number") {
+                        onParameterChange?.(param.name, clampMoveJointAngle(selectedJoint, value));
+                        return;
+                      }
+                      onParameterChange?.(param.name, value);
+                    }}
+                  />
+                );
+              })()
             ) : (
               <span className="bg-white text-slate-900 px-3 py-1 rounded-full text-[11px] font-bold shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] border border-black/10 opacity-100 min-w-[32px] text-center h-6 flex items-center justify-center">
                 {param.defaultValue?.toString() || param.name}
@@ -154,7 +195,7 @@ export function Block({
       aria-label={definition.name}
       className={cn(
         "relative select-none text-white font-bold text-sm flex flex-col items-start group",
-        isInPalette && "cursor-pointer hover:scale-105",
+        isInPalette && "cursor-pointer",
         isDragging && "z-50 scale-105 drop-shadow-2xl opacity-90",
         className
       )}
@@ -167,22 +208,6 @@ export function Block({
           ? ""
           : `transform ${SCRATCH_THEME.animation.fast} ${SCRATCH_THEME.animation.easeOut}, box-shadow ${SCRATCH_THEME.animation.fast} ${SCRATCH_THEME.animation.easeOut}, filter ${SCRATCH_THEME.animation.fast} ${SCRATCH_THEME.animation.easeOut}`,
         animation: `fadeIn ${SCRATCH_THEME.animation.normal} ${SCRATCH_THEME.animation.easeOut} ${calculatedDelay} both`,
-      }}
-      onMouseEnter={(e) => {
-        if (!isDragging && !isInPalette) {
-          e.currentTarget.style.transform = "scale(1.05)";
-          e.currentTarget.style.filter = `drop-shadow(${SCRATCH_THEME.shadow.blockHover})`;
-        } else if (!isDragging && isInPalette) {
-          e.currentTarget.style.transform = "scale(1.08)";
-          e.currentTarget.style.filter = `drop-shadow(${SCRATCH_THEME.shadow.lg})`;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isDragging) {
-          e.currentTarget.style.transform = "";
-          e.currentTarget.style.filter = isInPalette ? "" : "";
-          e.currentTarget.style.boxShadow = isInPalette ? SCRATCH_THEME.shadow.md : "";
-        }
       }}
     >
       {/* SVG Background Layer */}

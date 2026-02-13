@@ -20,6 +20,13 @@ export class ConnectionLostError extends Error {
   }
 }
 
+export class ExecutionLimitError extends Error {
+  constructor(message = "Execution stopped due to safety limits") {
+    super(message);
+    this.name = "ExecutionLimitError";
+  }
+}
+
 export interface BlockExecutorDeps {
   updateJointsDegrees?: (updates: { servoId: number; value: number }[]) => Promise<void>;
   homeRobot?: () => Promise<void>;
@@ -31,6 +38,17 @@ export interface BlockExecutorDeps {
 export interface ExecuteBlocksOptions {
   signal?: AbortSignal;
 }
+
+interface ExecutionState {
+  startedAtMs: number;
+  executedBlocks: number;
+}
+
+const EXECUTION_GUARDS = {
+  maxProgramDurationMs: 120_000,
+  maxExecutedBlocks: 5000,
+  maxLoopIterations: 500,
+} as const;
 
 /**
  * Helper to create a cancellable delay
@@ -73,6 +91,16 @@ function checkConnection(isConnected?: () => boolean): void {
   }
 }
 
+function checkExecutionLimits(state: ExecutionState): void {
+  if (Date.now() - state.startedAtMs > EXECUTION_GUARDS.maxProgramDurationMs) {
+    throw new ExecutionLimitError("Execution timed out for safety");
+  }
+
+  if (state.executedBlocks >= EXECUTION_GUARDS.maxExecutedBlocks) {
+    throw new ExecutionLimitError("Execution exceeded safe operation limit");
+  }
+}
+
 /**
  * Executes a sequence of blocks with abort and connection checking support
  */
@@ -80,10 +108,12 @@ export async function executeBlocks(
   allBlocks: BlockInstance[],
   deps: BlockExecutorDeps,
   options: ExecuteBlocksOptions = {},
-  blocksToExecute?: BlockInstance[]
+  blocksToExecute?: BlockInstance[],
+  state?: ExecutionState
 ): Promise<void> {
   const { updateJointsDegrees, homeRobot, openGripper, closeGripper, isConnected } = deps;
   const { signal } = options;
+  const executionState = state || { startedAtMs: Date.now(), executedBlocks: 0 };
 
   if (!updateJointsDegrees) {
     throw new Error("Robot control functions not available.");
@@ -92,6 +122,7 @@ export async function executeBlocks(
   // Check initial state
   checkAborted(signal);
   checkConnection(isConnected);
+  checkExecutionLimits(executionState);
 
   // If blocksToExecute is not provided, we start with top-level blocks
   const currentBlocks = blocksToExecute || allBlocks.filter((b) => !b.parentId);
@@ -108,6 +139,8 @@ export async function executeBlocks(
     // Check abort and connection before each block
     checkAborted(signal);
     checkConnection(isConnected);
+    checkExecutionLimits(executionState);
+    executionState.executedBlocks += 1;
 
     if (block.definitionId === BLOCK_IDS.HOME_ROBOT && homeRobot) {
       await homeRobot();
@@ -132,20 +165,41 @@ export async function executeBlocks(
           ? block.parameters.times
           : parseInt(String(block.parameters.times), 10) || 1;
       const childBlocks = allBlocks.filter((b) => b.parentId === block.id);
+      const boundedTimes = Math.min(
+        Math.max(0, Math.floor(times)),
+        EXECUTION_GUARDS.maxLoopIterations
+      );
 
-      for (let i = 0; i < times; i++) {
+      for (let i = 0; i < boundedTimes; i++) {
         checkAborted(signal);
         checkConnection(isConnected);
-        await executeBlocks(allBlocks, deps, options, childBlocks);
+        checkExecutionLimits(executionState);
+        await executeBlocks(allBlocks, deps, options, childBlocks, executionState);
       }
     } else if (block.definitionId === BLOCK_IDS.IF_CONDITION) {
       const condition = !!block.parameters.condition;
       if (condition) {
-        const childBlocks = allBlocks.filter((b) => b.parentId === block.id);
-        await executeBlocks(allBlocks, deps, options, childBlocks);
+        const childBlocks = allBlocks.filter(
+          (b) => b.parentId === block.id && b.childSlot !== "else"
+        );
+        await executeBlocks(allBlocks, deps, options, childBlocks, executionState);
+      }
+    } else if (block.definitionId === BLOCK_IDS.IF_ELSE) {
+      const condition = !!block.parameters.condition;
+      if (condition) {
+        const childBlocks = allBlocks.filter(
+          (b) => b.parentId === block.id && b.childSlot !== "else"
+        );
+        await executeBlocks(allBlocks, deps, options, childBlocks, executionState);
+      } else {
+        const childBlocks = allBlocks.filter(
+          (b) => b.parentId === block.id && b.childSlot === "else"
+        );
+        await executeBlocks(allBlocks, deps, options, childBlocks, executionState);
       }
     } else if (block.definitionId === BLOCK_IDS.WHILE_LOOP) {
       const childBlocks = allBlocks.filter((b) => b.parentId === block.id);
+      let iterations = 0;
 
       // Caution: This is a recursive execution. The condition should ideally be checked
       // dynamically, but since we are evaluating statically from parameters for now:
@@ -153,9 +207,14 @@ export async function executeBlocks(
         (block.parameters.condition as unknown) === true ||
         block.parameters.condition === "true"
       ) {
+        if (iterations >= EXECUTION_GUARDS.maxLoopIterations) {
+          throw new ExecutionLimitError("Loop iteration limit reached");
+        }
         checkAborted(signal);
         checkConnection(isConnected);
-        await executeBlocks(allBlocks, deps, options, childBlocks);
+        checkExecutionLimits(executionState);
+        await executeBlocks(allBlocks, deps, options, childBlocks, executionState);
+        iterations += 1;
 
         // Safety delay to prevent infinite fast loops
         await delay(EXECUTION_CONFIG.INTER_BLOCK_DELAY_MS, signal);
@@ -167,6 +226,20 @@ export async function executeBlocks(
         )
           break;
       }
+    } else if (block.definitionId === BLOCK_IDS.FOREVER) {
+      const childBlocks = allBlocks.filter((b) => b.parentId === block.id);
+      let iterations = 0;
+
+      while (iterations < EXECUTION_GUARDS.maxLoopIterations) {
+        checkAborted(signal);
+        checkConnection(isConnected);
+        checkExecutionLimits(executionState);
+        await executeBlocks(allBlocks, deps, options, childBlocks, executionState);
+        iterations += 1;
+        await delay(EXECUTION_CONFIG.INTER_BLOCK_DELAY_MS, signal);
+      }
+
+      throw new ExecutionLimitError("Loop iteration limit reached");
     }
 
     // Delay between blocks (also cancellable)

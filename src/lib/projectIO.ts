@@ -29,6 +29,30 @@ export interface ImportResult {
   error?: string;
 }
 
+const IMPORT_LIMITS = {
+  maxFileBytes: 1024 * 1024, // 1MB
+  maxJsonCharacters: 1_000_000,
+  maxShareCodeCharacters: 1_500_000,
+  maxBlockDepth: 50,
+  maxBlockCount: 5000,
+} as const;
+
+const SHARE_SECURITY = {
+  version: 2,
+  pbkdf2Iterations: 210_000,
+  minPassphraseLength: 8,
+} as const;
+
+type SignedShareCodeEnvelope = {
+  v: number;
+  kdf: "PBKDF2";
+  hash: "SHA-256";
+  iterations: number;
+  salt: string;
+  payload: string;
+  sig: string;
+};
+
 const WORD_LIST = [
   "autumn",
   "hidden",
@@ -251,8 +275,10 @@ function validateProjectData(data: unknown): ImportResult {
   }
 
   // Validate each block
+  const validationState = { blockCount: 0 };
+
   for (const block of project.blocks) {
-    const blockValidation = validateBlock(block);
+    const blockValidation = validateBlock(block, 1, validationState);
     if (!blockValidation.valid) {
       return { success: false, error: blockValidation.error };
     }
@@ -267,9 +293,22 @@ function validateProjectData(data: unknown): ImportResult {
 /**
  * Validates a single block structure
  */
-function validateBlock(block: unknown): { valid: boolean; error?: string } {
+function validateBlock(
+  block: unknown,
+  depth: number,
+  state: { blockCount: number }
+): { valid: boolean; error?: string } {
   if (!block || typeof block !== "object") {
     return { valid: false, error: "Invalid block: expected an object" };
+  }
+
+  if (depth > IMPORT_LIMITS.maxBlockDepth) {
+    return { valid: false, error: "Invalid block: nesting depth exceeds allowed limit" };
+  }
+
+  state.blockCount += 1;
+  if (state.blockCount > IMPORT_LIMITS.maxBlockCount) {
+    return { valid: false, error: "Invalid project: too many blocks" };
   }
 
   const b = block as Record<string, unknown>;
@@ -296,7 +335,7 @@ function validateBlock(block: unknown): { valid: boolean; error?: string } {
 
   // Recursively validate children
   for (const child of b.children) {
-    const childValidation = validateBlock(child);
+    const childValidation = validateBlock(child, depth + 1, state);
     if (!childValidation.valid) {
       return childValidation;
     }
@@ -343,6 +382,13 @@ function regenerateBlockIds(blocks: BlockInstance[]): BlockInstance[] {
  * Imports project data from a JSON string
  */
 export function importProjectFromString(jsonString: string): ImportResult {
+  if (jsonString.length > IMPORT_LIMITS.maxJsonCharacters) {
+    return {
+      success: false,
+      error: "Project data too large to import safely",
+    };
+  }
+
   try {
     const data = JSON.parse(jsonString);
     const validation = validateProjectData(data);
@@ -384,6 +430,13 @@ export function readFileAsString(file: File): Promise<string> {
  * Imports a project from a file
  */
 export async function importProjectFromFile(file: File): Promise<ImportResult> {
+  if (file.size > IMPORT_LIMITS.maxFileBytes) {
+    return {
+      success: false,
+      error: "File too large. Maximum allowed size is 1MB.",
+    };
+  }
+
   try {
     const content = await readFileAsString(file);
     return importProjectFromString(content);
@@ -395,25 +448,182 @@ export async function importProjectFromFile(file: File): Promise<ImportResult> {
   }
 }
 
+function getCryptoApi(): Crypto | null {
+  return typeof globalThis !== "undefined" && "crypto" in globalThis ? globalThis.crypto : null;
+}
+
+function toBase64(data: ArrayBuffer | Uint8Array): string {
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+function fromBase64(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function encodeUtf8(value: string): Uint8Array {
+  return new TextEncoder().encode(value);
+}
+
+function decodeLegacyShareCode(code: string): string {
+  return decodeURIComponent(atob(code));
+}
+
+function parseSignedEnvelope(decoded: string): SignedShareCodeEnvelope | null {
+  try {
+    const parsed = JSON.parse(decoded) as Record<string, unknown>;
+    if (
+      parsed.v === SHARE_SECURITY.version &&
+      parsed.kdf === "PBKDF2" &&
+      parsed.hash === "SHA-256" &&
+      typeof parsed.iterations === "number" &&
+      typeof parsed.salt === "string" &&
+      typeof parsed.payload === "string" &&
+      typeof parsed.sig === "string"
+    ) {
+      return parsed as SignedShareCodeEnvelope;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function deriveHmacKey(
+  passphrase: string,
+  salt: Uint8Array,
+  iterations: number
+): Promise<CryptoKey> {
+  const cryptoApi = getCryptoApi();
+  if (!cryptoApi?.subtle) {
+    throw new Error("Secure share codes are not supported in this browser");
+  }
+
+  const keyMaterial = await cryptoApi.subtle.importKey(
+    "raw",
+    encodeUtf8(passphrase),
+    { name: "PBKDF2" },
+    false,
+    ["deriveKey"]
+  );
+
+  return cryptoApi.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt,
+      iterations,
+      hash: "SHA-256",
+    },
+    keyMaterial,
+    { name: "HMAC", hash: "SHA-256", length: 256 },
+    false,
+    ["sign", "verify"]
+  );
+}
+
 /**
- * Generates a shareable link (base64 encoded project data)
- * Note: For very large projects, consider using a shortened URL service
+ * Generates a signed share code for project data.
  */
-export function generateShareableCode(
+export async function generateShareableCode(
   blocks: BlockInstance[],
-  options: ExportOptions = {}
-): string {
+  options: ExportOptions = {},
+  passphrase: string
+): Promise<string> {
+  const normalizedPassphrase = passphrase.trim();
+  if (normalizedPassphrase.length < SHARE_SECURITY.minPassphraseLength) {
+    throw new Error(`Passphrase must be at least ${SHARE_SECURITY.minPassphraseLength} characters`);
+  }
+
+  const cryptoApi = getCryptoApi();
+  if (!cryptoApi?.subtle) {
+    throw new Error("Secure share codes are not supported in this browser");
+  }
+
   const projectData = createProjectData(blocks, options);
   const jsonString = JSON.stringify(projectData);
-  return btoa(encodeURIComponent(jsonString));
+  const payload = btoa(encodeURIComponent(jsonString));
+
+  const salt = cryptoApi.getRandomValues(new Uint8Array(16));
+  const key = await deriveHmacKey(
+    normalizedPassphrase,
+    salt,
+    SHARE_SECURITY.pbkdf2Iterations
+  );
+
+  const signature = await cryptoApi.subtle.sign("HMAC", key, encodeUtf8(payload));
+  const envelope: SignedShareCodeEnvelope = {
+    v: SHARE_SECURITY.version,
+    kdf: "PBKDF2",
+    hash: "SHA-256",
+    iterations: SHARE_SECURITY.pbkdf2Iterations,
+    salt: toBase64(salt),
+    payload,
+    sig: toBase64(signature),
+  };
+
+  return btoa(encodeURIComponent(JSON.stringify(envelope)));
 }
 
 /**
  * Imports project from a shareable code
  */
-export function importFromShareableCode(code: string): ImportResult {
+export async function importFromShareableCode(
+  code: string,
+  passphrase = ""
+): Promise<ImportResult> {
+  if (code.length > IMPORT_LIMITS.maxShareCodeCharacters) {
+    return {
+      success: false,
+      error: "Share code too large to import safely",
+    };
+  }
+
   try {
-    const jsonString = decodeURIComponent(atob(code));
+    const decodedCode = decodeURIComponent(atob(code));
+    const signedEnvelope = parseSignedEnvelope(decodedCode);
+
+    if (!signedEnvelope) {
+      const jsonString = decodeLegacyShareCode(code);
+      return importProjectFromString(jsonString);
+    }
+
+    const normalizedPassphrase = passphrase.trim();
+    if (!normalizedPassphrase) {
+      return { success: false, error: "Passphrase is required for this share code" };
+    }
+
+    const cryptoApi = getCryptoApi();
+    if (!cryptoApi?.subtle) {
+      return { success: false, error: "Secure share code verification is unavailable" };
+    }
+
+    const key = await deriveHmacKey(
+      normalizedPassphrase,
+      fromBase64(signedEnvelope.salt),
+      signedEnvelope.iterations
+    );
+
+    const isValid = await cryptoApi.subtle.verify(
+      "HMAC",
+      key,
+      fromBase64(signedEnvelope.sig),
+      encodeUtf8(signedEnvelope.payload)
+    );
+
+    if (!isValid) {
+      return { success: false, error: "Invalid passphrase or tampered share code" };
+    }
+
+    const jsonString = decodeURIComponent(atob(signedEnvelope.payload));
     return importProjectFromString(jsonString);
   } catch {
     return { success: false, error: "Invalid share code" };

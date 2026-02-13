@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { SERVO_CONFIG } from "@/lib/executionConfig";
 import { logger } from "@/lib/logger";
 import type { JointDetails, JointState } from "@/lib/types";
-import { degreesToServoPosition, servoPositionToAngle } from "../lib/utils";
+import { degreesToServoPosition, radiansToDegrees, servoPositionToAngle } from "../lib/utils";
 
 const log = logger.scope("RobotControl");
 
@@ -41,6 +41,27 @@ export function useRobotControl(
 
   // Store initial positions of servos
   const [initialPositions, setInitialPositions] = useState<number[]>([]);
+
+  const clampToJointLimits = useCallback(
+    (servoId: number, value: number) => {
+      const joint = jointDetails.find((details) => details.servoId === servoId);
+      const rawLower = joint?.limit?.lower;
+      const rawUpper = joint?.limit?.upper;
+      const hasRadianScaleLimits =
+        (typeof rawLower === "number" && Math.abs(rawLower) <= Math.PI * 2 + 0.001) ||
+        (typeof rawUpper === "number" && Math.abs(rawUpper) <= Math.PI * 2 + 0.001);
+      const lower =
+        rawLower === undefined ? 0 : hasRadianScaleLimits ? radiansToDegrees(rawLower) : rawLower;
+      const upper =
+        rawUpper === undefined
+          ? 360
+          : hasRadianScaleLimits
+            ? radiansToDegrees(rawUpper)
+            : rawUpper;
+      return Math.max(lower, Math.min(upper, value));
+    },
+    [jointDetails]
+  );
 
   useEffect(() => {
     setJointStates(
@@ -181,11 +202,12 @@ export function useRobotControl(
   // Update revolute joint degrees
   const updateJointDegrees = useCallback(
     async (servoId: number, value: number) => {
+      const boundedValue = clampToJointLimits(servoId, value);
       setJointStates((prevStates) => {
         const newStates = [...prevStates];
         const jointIndex = newStates.findIndex((state) => state.servoId === servoId);
         if (jointIndex !== -1) {
-          newStates[jointIndex].targetDegrees = value;
+          newStates[jointIndex].targetDegrees = boundedValue;
           newStates[jointIndex].isMoving = true;
         }
         return newStates;
@@ -193,33 +215,27 @@ export function useRobotControl(
 
       if (isConnected) {
         try {
-          if (value >= 0 && value <= 360) {
-            const servoPosition = degreesToServoPosition(value);
-            await scsServoSDK.writePosition(servoId, Math.round(servoPosition));
-            // Read back the actual position and update the virtual state
-            const actualPosition = await scsServoSDK.readPosition(servoId);
-            const actualDegrees = servoPositionToAngle(actualPosition);
-            setJointStates((prevStates) => {
-              const newStates = [...prevStates];
-              const jointIndex = newStates.findIndex((state) => state.servoId === servoId);
-              if (jointIndex !== -1) {
-                newStates[jointIndex].degrees = actualDegrees;
-                newStates[jointIndex].targetDegrees = actualDegrees;
-                newStates[jointIndex].isMoving = false;
-              }
-              return newStates;
-            });
-          } else {
-            console.warn(
-              `Value ${value} for servo ${servoId} is out of range (0-360). Skipping update.`
-            );
-          }
+          const servoPosition = degreesToServoPosition(boundedValue);
+          await scsServoSDK.writePosition(servoId, Math.round(servoPosition));
+          // Read back the actual position and update the virtual state
+          const actualPosition = await scsServoSDK.readPosition(servoId);
+          const actualDegrees = servoPositionToAngle(actualPosition);
+          setJointStates((prevStates) => {
+            const newStates = [...prevStates];
+            const jointIndex = newStates.findIndex((state) => state.servoId === servoId);
+            if (jointIndex !== -1) {
+              newStates[jointIndex].degrees = actualDegrees;
+              newStates[jointIndex].targetDegrees = actualDegrees;
+              newStates[jointIndex].isMoving = false;
+            }
+            return newStates;
+          });
         } catch (error) {
           console.error(`Failed to update servo degrees for joint with servoId ${servoId}:`, error);
         }
       }
     },
-    [isConnected, scsServoSDK]
+    [clampToJointLimits, isConnected, scsServoSDK]
   );
 
   // Update continuous joint speed
@@ -249,9 +265,14 @@ export function useRobotControl(
   // Update multiple joints' degrees simultaneously
   const updateJointsDegrees: UpdateJointsDegrees = useCallback(
     async (updates) => {
+      const boundedUpdates = updates.map(({ servoId, value }) => ({
+        servoId,
+        value: clampToJointLimits(servoId, value),
+      }));
+
       setJointStates((prevStates) => {
         const newStates = [...prevStates];
-        updates.forEach(({ servoId, value }) => {
+        boundedUpdates.forEach(({ servoId, value }) => {
           const jointIndex = newStates.findIndex((state) => state.servoId === servoId);
           if (jointIndex !== -1 && newStates[jointIndex].jointType === "revolute") {
             newStates[jointIndex].targetDegrees = value;
@@ -263,15 +284,9 @@ export function useRobotControl(
 
       if (isConnected) {
         const servoPositions: Record<number, number> = {};
-        updates.forEach(({ servoId, value }) => {
-          if (value >= 0 && value <= 360) {
-            const servoPosition = degreesToServoPosition(value);
-            servoPositions[servoId] = Math.round(servoPosition);
-          } else {
-            console.warn(
-              `Value ${value} for servo ${servoId} is out of range (0-360). Skipping update in sync write.`
-            );
-          }
+        boundedUpdates.forEach(({ servoId, value }) => {
+          const servoPosition = degreesToServoPosition(value);
+          servoPositions[servoId] = Math.round(servoPosition);
         });
         if (Object.keys(servoPositions).length > 0) {
           try {
@@ -282,7 +297,7 @@ export function useRobotControl(
         }
       }
     },
-    [isConnected, scsServoSDK]
+    [clampToJointLimits, isConnected, scsServoSDK]
   );
 
   // Update multiple joints' speed simultaneously
@@ -324,11 +339,6 @@ export function useRobotControl(
 
   // Home the robot - move all joints to their initial positions from URDF
   const homeRobot = useCallback(async () => {
-    if (!isConnected) {
-      alert("Robot is not connected. Cannot home robot.");
-      console.warn("Robot is not connected. Cannot home robot.");
-      return;
-    }
     const homeUpdates = jointDetails.map((joint) => {
       const homeAngle = urdfInitJointAngles?.[joint.name] ?? 0;
       return {
@@ -337,16 +347,26 @@ export function useRobotControl(
       };
     });
     log.debug("Homing robot to URDF initial positions", homeUpdates);
-    // Move each joint individually for better reliability
-    for (const { servoId, value } of homeUpdates) {
-      try {
-        await updateJointDegrees(servoId, value);
-        log.debug(`Homed joint servoId ${servoId} to ${value} degrees`);
-      } catch (error) {
-        log.error(`Failed to home joint servoId ${servoId}`, error);
+    if (isConnected) {
+      // Move each joint individually for better reliability on hardware.
+      for (const { servoId, value } of homeUpdates) {
+        try {
+          await updateJointDegrees(servoId, value);
+          log.debug(`Homed joint servoId ${servoId} to ${value} degrees`);
+        } catch (error) {
+          log.error(`Failed to home joint servoId ${servoId}`, error);
+        }
       }
+      return;
     }
-  }, [isConnected, jointDetails, urdfInitJointAngles, updateJointDegrees]);
+
+    // Disconnected mode: still update virtual joint state for simulation.
+    try {
+      await updateJointsDegrees(homeUpdates);
+    } catch (error) {
+      log.error("Failed to home virtual robot", error);
+    }
+  }, [isConnected, jointDetails, urdfInitJointAngles, updateJointDegrees, updateJointsDegrees]);
 
   const emergencyStop = useCallback(async () => {
     if (isConnected) {

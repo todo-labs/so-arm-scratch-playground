@@ -1,7 +1,12 @@
 import type React from "react";
 import { createContext, type ReactNode, useCallback, useContext, useRef, useState } from "react";
 import type { UpdateJointsDegrees } from "@/hooks/useRobotControl";
-import { ConnectionLostError, ExecutionAbortedError, executeBlocks } from "@/lib/blockExecutor";
+import {
+  ConnectionLostError,
+  ExecutionAbortedError,
+  ExecutionLimitError,
+  executeBlocks,
+} from "@/lib/blockExecutor";
 import { logger } from "@/lib/logger";
 import type { BlockDefinition, BlockInstance } from "@/lib/types";
 
@@ -11,14 +16,19 @@ const log = logger.scope("Scratch");
 type ScratchContextType = {
   blocks: BlockInstance[];
   setBlocks: React.Dispatch<React.SetStateAction<BlockInstance[]>>;
+  importBlocks: (blocks: BlockInstance[]) => void;
   generatedCode: string;
   isRunningCode: boolean;
   setGeneratedCode: React.Dispatch<React.SetStateAction<string>>;
   handleBlockClick: (definition: BlockDefinition) => void;
-  handleAddChildBlock: (parentId: string, definition: BlockDefinition) => void;
+  handleAddChildBlock: (
+    parentId: string,
+    definition: BlockDefinition,
+    childSlot?: "then" | "else"
+  ) => void;
   handleBlockUpdate: (id: string, param: string, value: boolean | number | string) => void;
   handleBlockRemove: (id: string) => void;
-  handleRunCode: () => void;
+  handleRunCode: (options?: { simulate?: boolean }) => void;
   handleStopCode: () => void;
   handleClear: () => void;
   handleCopyCode: () => void;
@@ -51,9 +61,15 @@ export function ScratchProvider({
   isConnected = false,
 }: ScratchProviderProps) {
   const [blocks, setBlocks] = useState<BlockInstance[]>([]);
+  const [requiresImportTrustConfirmation, setRequiresImportTrustConfirmation] = useState(false);
   const [generatedCode, setGeneratedCode] = useState("");
   const [isRunningCode, setIsRunningCode] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const importBlocks = useCallback((importedBlocks: BlockInstance[]) => {
+    setBlocks(importedBlocks);
+    setRequiresImportTrustConfirmation(true);
+  }, []);
 
   const handleBlockClick = useCallback((definition: BlockDefinition) => {
     const newBlock: BlockInstance = {
@@ -74,25 +90,29 @@ export function ScratchProvider({
     setBlocks((prev) => [...prev, newBlock]);
   }, []);
 
-  const handleAddChildBlock = useCallback((parentId: string, definition: BlockDefinition) => {
-    const newChild: BlockInstance = {
-      id: `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      definitionId: definition.id,
-      x: 0,
-      y: 0,
-      parameters: definition.parameters.reduce<Record<string, boolean | number | string>>(
-        (acc, p) => {
-          acc[p.name] = p.defaultValue;
-          return acc;
-        },
-        {}
-      ),
-      children: [],
-      parentId,
-      isSnapped: false,
-    };
-    setBlocks((prev) => [...prev, newChild]);
-  }, []);
+  const handleAddChildBlock = useCallback(
+    (parentId: string, definition: BlockDefinition, childSlot: "then" | "else" = "then") => {
+      const newChild: BlockInstance = {
+        id: `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        definitionId: definition.id,
+        x: 0,
+        y: 0,
+        parameters: definition.parameters.reduce<Record<string, boolean | number | string>>(
+          (acc, p) => {
+            acc[p.name] = p.defaultValue;
+            return acc;
+          },
+          {}
+        ),
+        children: [],
+        parentId,
+        childSlot,
+        isSnapped: false,
+      };
+      setBlocks((prev) => [...prev, newChild]);
+    },
+    []
+  );
 
   const handleBlockUpdate = useCallback(
     (id: string, param: string, value: boolean | number | string) => {
@@ -122,7 +142,9 @@ export function ScratchProvider({
     setIsRunningCode(false);
   }, []);
 
-  const handleRunCode = useCallback(async () => {
+  const handleRunCode = useCallback(async (options?: { simulate?: boolean }) => {
+    const simulate = options?.simulate === true;
+
     if (blocks.length === 0) {
       alert("Please add blocks to run the code.");
       return;
@@ -133,9 +155,19 @@ export function ScratchProvider({
       return;
     }
 
-    if (!isConnected) {
+    if (!isConnected && !simulate) {
       alert("Robot is not connected. Please connect first.");
       return;
+    }
+
+    if (requiresImportTrustConfirmation) {
+      const approved = window.confirm(
+        "This program was imported from an external source. Only run it if you trust the source. Continue?"
+      );
+      if (!approved) {
+        return;
+      }
+      setRequiresImportTrustConfirmation(false);
     }
 
     // Cancel any existing execution
@@ -157,7 +189,7 @@ export function ScratchProvider({
           homeRobot,
           openGripper,
           closeGripper,
-          isConnected: () => isConnected,
+          isConnected: simulate ? undefined : () => isConnected,
         },
         { signal }
       );
@@ -169,6 +201,9 @@ export function ScratchProvider({
       } else if (error instanceof ConnectionLostError) {
         alert("Robot connection lost during execution.");
         console.error("Connection lost:", error);
+      } else if (error instanceof ExecutionLimitError) {
+        alert("Execution stopped for safety. Reduce loop counts or program size.");
+        console.error("Execution stopped by safety guard:", error);
       } else {
         alert("Error running code – see console for details.");
         console.error("Error running code:", error);
@@ -176,7 +211,15 @@ export function ScratchProvider({
     } finally {
       abortControllerRef.current = null;
     }
-  }, [blocks, updateJointsDegrees, homeRobot, openGripper, closeGripper, isConnected]);
+  }, [
+    blocks,
+    updateJointsDegrees,
+    homeRobot,
+    openGripper,
+    closeGripper,
+    isConnected,
+    requiresImportTrustConfirmation,
+  ]);
 
   const handleCopyCode = useCallback(() => {
     navigator.clipboard.writeText(generatedCode);
@@ -197,6 +240,7 @@ export function ScratchProvider({
       value={{
         blocks,
         setBlocks,
+        importBlocks,
         generatedCode,
         setGeneratedCode,
         handleBlockClick,

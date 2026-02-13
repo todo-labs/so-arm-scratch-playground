@@ -1,12 +1,3 @@
-import {
-  DndContext,
-  type DragEndEvent,
-  DragOverlay,
-  type DragStartEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
 import { Bot, Plus } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -16,16 +7,16 @@ import { playSound, SCRATCH_THEME } from "@/lib/theme/scratch";
 import type { BlockDefinition, BlockInstance } from "@/lib/types";
 import { Block } from "./Block";
 import { ChildBlockSelector } from "./ChildBlockSelector";
-import { DraggableBlock } from "./DraggableBlock";
-import { DroppableZone } from "./DroppableZone";
 
 interface WorkspaceProps {
   blocks: BlockInstance[];
   onBlockUpdate: (blockId: string, parameterId: string, value: boolean | number | string) => void;
   onBlockRemove: (blockId: string) => void;
-  onAddChildBlock: (parentId: string, definition: BlockDefinition) => void;
-  onBlockAdd?: (definition: BlockDefinition) => void;
-  onBlockReorder?: (activeId: string, overId: string) => void;
+  onAddChildBlock: (
+    parentId: string,
+    definition: BlockDefinition,
+    childSlot?: "then" | "else"
+  ) => void;
 }
 
 export function Workspace({
@@ -33,59 +24,47 @@ export function Workspace({
   onBlockUpdate,
   onBlockRemove,
   onAddChildBlock,
-  onBlockReorder,
 }: WorkspaceProps) {
   const [showChildBlockSelector, setShowChildBlockSelector] = useState<{
     parentId: string;
     parentName: string;
+    childSlot: "then" | "else";
   } | null>(null);
 
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const hasChildrenSlot = (definition: BlockDefinition) =>
+    definition.category === "control" && definition.codeTemplate.includes("{{children}}");
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
-
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-    playSound("click");
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveId(null);
-
-    if (over && active.id !== over.id && onBlockReorder) {
-      playSound("snap");
-      onBlockReorder(active.id as string, over.id as string);
-    } else {
-      playSound("drop");
-    }
-  };
-
-  const handleAddChildBlockClick = (parentId: string) => {
+  const handleAddChildBlockClick = (parentId: string, childSlot: "then" | "else" = "then") => {
     const parentBlock = blocks.find((b) => b.id === parentId);
     const parentDefinition = parentBlock ? registry.getBlock(parentBlock.definitionId) : null;
-    const parentName = parentDefinition?.name || "Block";
+    const parentName = `${parentDefinition?.name || "Block"} (${childSlot})`;
 
     playSound("click");
-    setShowChildBlockSelector({ parentId, parentName });
+    setShowChildBlockSelector({ parentId, parentName, childSlot });
   };
 
   const handleChildBlockSelect = (definition: BlockDefinition) => {
     if (showChildBlockSelector) {
       playSound("snap");
-      onAddChildBlock(showChildBlockSelector.parentId, definition);
+      onAddChildBlock(
+        showChildBlockSelector.parentId,
+        definition,
+        showChildBlockSelector.childSlot
+      );
       setShowChildBlockSelector(null);
     }
   };
 
-  const renderChildBlocks = (parentId: string, parentIndex = 0) => {
-    const childBlocks = blocks.filter((block) => block.parentId === parentId);
+  const renderChildBlocks = (
+    parentId: string,
+    parentIndex = 0,
+    childSlot: "then" | "else" = "then"
+  ) => {
+    const childBlocks = blocks.filter((block) => {
+      if (block.parentId !== parentId) return false;
+      if (childSlot === "else") return block.childSlot === "else";
+      return block.childSlot !== "else";
+    });
 
     if (childBlocks.length === 0) {
       return (
@@ -96,8 +75,8 @@ export function Workspace({
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => handleAddChildBlockClick(parentId)}
-            className="text-white/70 hover:text-white hover:bg-white/10 text-sm font-medium"
+            onClick={() => handleAddChildBlockClick(parentId, childSlot)}
+            className="text-white/70 hover:text-white hover:bg-white/10 dark:hover:bg-white/15 text-sm font-medium"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add blocks here
@@ -114,27 +93,28 @@ export function Workspace({
             if (!definition) return null;
 
             return (
-              <DraggableBlock key={childBlock.id} id={childBlock.id}>
-                <Block
-                  definition={definition}
-                  instance={childBlock}
-                  animationDelay={`${parseInt(SCRATCH_THEME.animation.short, 10) * (index + 1)}ms`}
-                  indexInStack={parentIndex + index + 1}
-                  onParameterChange={(parameterId, value) =>
-                    onBlockUpdate(childBlock.id, parameterId, value)
-                  }
-                  onRemove={() => {
-                    playSound("click");
-                    onBlockRemove(childBlock.id);
-                  }}
-                  onAddChildBlock={handleAddChildBlockClick}
-                  renderChildBlocks={
-                    definition.category === "control"
-                      ? () => renderChildBlocks(childBlock.id, parentIndex + index + 1)
-                      : undefined
-                  }
-                />
-              </DraggableBlock>
+              <Block
+                key={childBlock.id}
+                definition={definition}
+                instance={childBlock}
+                animationDelay={`${parseInt(SCRATCH_THEME.animation.short, 10) * (index + 1)}ms`}
+                indexInStack={parentIndex + index + 1}
+                onParameterChange={(parameterId, value) =>
+                  onBlockUpdate(childBlock.id, parameterId, value)
+                }
+                onRemove={() => {
+                  playSound("click");
+                  onBlockRemove(childBlock.id);
+                }}
+                onAddChildBlock={handleAddChildBlockClick}
+                renderChildBlocks={
+                  definition.category === "control" && hasChildrenSlot(definition)
+                    ? definition.id === BLOCK_IDS.IF_ELSE
+                      ? () => renderIfElseChildren(childBlock.id, parentIndex + index + 1)
+                      : () => renderChildBlocks(childBlock.id, parentIndex + index + 1, "then")
+                    : undefined
+                }
+              />
             );
           })}
 
@@ -142,8 +122,8 @@ export function Workspace({
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => handleAddChildBlockClick(parentId)}
-              className="text-white/50 hover:text-white/70 hover:bg-white/5 text-xs"
+              onClick={() => handleAddChildBlockClick(parentId, childSlot)}
+              className="text-white/60 hover:text-white/80 hover:bg-white/10 text-xs"
             >
               <Plus className="h-3 w-3 mr-1" />
               Add more
@@ -154,128 +134,108 @@ export function Workspace({
     );
   };
 
-  // Get only top-level blocks (no parent)
+  const renderIfElseChildren = (parentId: string, parentIndex = 0) => {
+    return (
+      <div className="space-y-2">
+        <div className="rounded-md bg-black/10 p-1.5">
+          <p className="text-[10px] uppercase tracking-wide text-white/70 px-1">Then</p>
+          {renderChildBlocks(parentId, parentIndex, "then")}
+        </div>
+        <div className="rounded-md bg-black/10 p-1.5">
+          <p className="text-[10px] uppercase tracking-wide text-white/70 px-1">Else</p>
+          {renderChildBlocks(parentId, parentIndex, "else")}
+        </div>
+      </div>
+    );
+  };
+
   const topLevelBlocks = blocks.filter((block) => !block.parentId);
 
-  // Get the active block for drag overlay
-  const activeBlock = activeId ? blocks.find((b) => b.id === activeId) : null;
-  const activeDefinition = activeBlock ? registry.getBlock(activeBlock.definitionId) : null;
-
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div style={{ position: "relative", minHeight: "100%", width: "100%" }}>
-        <style>{`
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-              transform: translateY(${SCRATCH_THEME.spacing.md});
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
+    <div style={{ position: "relative", minHeight: "100%", width: "100%" }}>
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(${SCRATCH_THEME.spacing.md});
           }
-        `}</style>
-        <div
-          className="relative min-h-full w-full"
-          style={{
-            backgroundColor: SCRATCH_THEME.workspace.backgroundColor,
-          }}
-        >
-          {/* Grid background - subtle dot pattern with grid lines */}
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `
-                radial-gradient(circle at center, ${SCRATCH_THEME.workspace.gridColor} 1px, transparent 1px),
-                linear-gradient(${SCRATCH_THEME.workspace.gridColor} 1px, transparent 1px),
-                linear-gradient(90deg, ${SCRATCH_THEME.workspace.gridColor} 1px, transparent 1px)
-              `,
-              backgroundSize: `${SCRATCH_THEME.workspace.gridSize}px ${SCRATCH_THEME.workspace.gridSize}px`,
-              backgroundPosition: "center center",
-            }}
-          />
-
-          {/* Empty state */}
-          {topLevelBlocks.length === 0 && (
-            <DroppableZone id="workspace-drop" className="absolute inset-4 border-4" placeholder="">
-              <div className="flex items-center justify-center h-full min-h-[300px]">
-                <div className="text-center text-slate-400">
-                  <div className="mb-4 animate-bounce text-slate-500">
-                    <Bot size={64} />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-2 text-slate-600">Start Programming!</h3>
-                  <p className="text-lg">Click blocks on the left to add them here</p>
-                </div>
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+      <div className="relative min-h-full w-full bg-slate-50 dark:bg-slate-900">
+        {/* Empty state */}
+        {topLevelBlocks.length === 0 && (
+          <div className="flex items-center justify-center h-full min-h-[300px]">
+            <div className="text-center text-slate-400">
+              <div className="mb-4 animate-bounce text-slate-500 dark:text-slate-300 flex justify-center">
+                <Bot size={64} />
               </div>
-            </DroppableZone>
-          )}
-
-          {/* Blocks */}
-          {topLevelBlocks.length > 0 && (
-            <div className="relative z-10" style={{ padding: SCRATCH_THEME.spacing.xxxl }}>
-              <div
-                className="flex flex-col w-full max-w-2xl"
-                style={{ gap: SCRATCH_THEME.spacing.xs }}
-              >
-                {topLevelBlocks.map((blockInstance, index) => {
-                  const definition = registry.getBlock(blockInstance.definitionId);
-                  if (!definition) return null;
-
-                  const isControlBlock =
-                    definition.category === "control" &&
-                    (definition.id === BLOCK_IDS.REPEAT ||
-                      definition.id === BLOCK_IDS.IF_CONDITION ||
-                      definition.id === BLOCK_IDS.WHILE_LOOP);
-
-                  return (
-                    <DraggableBlock key={blockInstance.id} id={blockInstance.id}>
-                      <Block
-                        definition={definition}
-                        instance={blockInstance}
-                        isDragging={activeId === blockInstance.id}
-                        animationDelay={`${parseInt(SCRATCH_THEME.animation.short, 10) * index}ms`}
-                        indexInStack={index}
-                        onParameterChange={(parameterId, value) =>
-                          onBlockUpdate(blockInstance.id, parameterId, value)
-                        }
-                        onRemove={() => {
-                          playSound("click");
-                          onBlockRemove(blockInstance.id);
-                        }}
-                        onAddChildBlock={handleAddChildBlockClick}
-                        renderChildBlocks={
-                          isControlBlock
-                            ? () => renderChildBlocks(blockInstance.id, index)
-                            : undefined
-                        }
-                      />
-                    </DraggableBlock>
-                  );
-                })}
-              </div>
+              <h3 className="text-2xl font-bold mb-2 text-slate-700 dark:text-slate-100">
+                Start Programming!
+              </h3>
+              <p className="text-lg text-slate-500 dark:text-slate-300">
+                Click blocks on the left to add them here
+              </p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Drag overlay */}
-        <DragOverlay>
-          {activeBlock && activeDefinition && (
-            <Block definition={activeDefinition} instance={activeBlock} isDragging={true} />
-          )}
-        </DragOverlay>
+        {/* Blocks */}
+        {topLevelBlocks.length > 0 && (
+          <div className="relative z-10" style={{ padding: SCRATCH_THEME.spacing.xxxl }}>
+            <div
+              className="flex flex-col w-full max-w-2xl"
+              style={{ gap: SCRATCH_THEME.spacing.xs }}
+            >
+              {topLevelBlocks.map((blockInstance, index) => {
+                const definition = registry.getBlock(blockInstance.definitionId);
+                if (!definition) return null;
 
-        {/* Child Block Selector Modal */}
-        {showChildBlockSelector && (
-          <ChildBlockSelector
-            categories={registry.getAllCategories()}
-            blocks={registry.getAllBlocks()}
-            onBlockSelect={handleChildBlockSelect}
-            onClose={() => setShowChildBlockSelector(null)}
-            parentBlockName={showChildBlockSelector.parentName}
-          />
+                const isControlBlock = hasChildrenSlot(definition);
+
+                return (
+                  <Block
+                    key={blockInstance.id}
+                    definition={definition}
+                    instance={blockInstance}
+                    animationDelay={`${parseInt(SCRATCH_THEME.animation.short, 10) * index}ms`}
+                    indexInStack={index}
+                    onParameterChange={(parameterId, value) =>
+                      onBlockUpdate(blockInstance.id, parameterId, value)
+                    }
+                    onRemove={() => {
+                      playSound("click");
+                      onBlockRemove(blockInstance.id);
+                    }}
+                    onAddChildBlock={handleAddChildBlockClick}
+                    renderChildBlocks={
+                      isControlBlock
+                        ? definition.id === BLOCK_IDS.IF_ELSE
+                          ? () => renderIfElseChildren(blockInstance.id, index)
+                          : () => renderChildBlocks(blockInstance.id, index, "then")
+                        : undefined
+                    }
+                  />
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
-    </DndContext>
+
+      {/* Child Block Selector Modal */}
+      {showChildBlockSelector && (
+        <ChildBlockSelector
+          categories={registry.getAllCategories()}
+          blocks={registry.getAllBlocks()}
+          onBlockSelect={handleChildBlockSelect}
+          onClose={() => setShowChildBlockSelector(null)}
+          parentBlockName={showChildBlockSelector.parentName}
+        />
+      )}
+    </div>
   );
 }

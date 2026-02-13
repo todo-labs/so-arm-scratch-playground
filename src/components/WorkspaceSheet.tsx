@@ -3,14 +3,7 @@ import { ExecutionControls } from "@/components/ExecutionControls";
 import { HorizontalBlockPalette } from "@/components/HorizontalBlockPalette";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Workspace } from "@/components/Workspace";
 import { registry } from "@/lib/blockRegistry";
 import { playSound } from "@/lib/theme/scratch";
@@ -26,9 +19,13 @@ interface WorkspaceSheetProps {
     value: boolean | number | string
   ) => void;
   handleBlockRemove: (id: string) => void;
-  handleAddChildBlock: (parentId: string, definition: BlockDefinition) => void;
+  handleAddChildBlock: (
+    parentId: string,
+    definition: BlockDefinition,
+    childSlot?: "then" | "else"
+  ) => void;
   handleClear: () => void;
-  handleRunCode: () => void;
+  handleRunCode: (options?: { simulate?: boolean }) => void;
   handleStopCode: () => void;
   isRunningCode: boolean;
 }
@@ -78,15 +75,6 @@ export function WorkspaceSheet({
         className="w-full sm:max-w-xl p-0 flex flex-col border-l shadow-2xl"
         showOverlay={false}
       >
-        <SheetHeader className="px-6 py-6 border-b bg-white">
-          <SheetTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Robot Programming
-          </SheetTitle>
-          <SheetDescription className="text-gray-500">
-            Build your robot program with blocks. Drag and drop to sequence commands.
-          </SheetDescription>
-        </SheetHeader>
-
         <div className="flex-1 flex flex-col">
           <HorizontalBlockPalette
             categories={registry.getAllCategories()}
@@ -94,12 +82,12 @@ export function WorkspaceSheet({
             onBlockClick={handleBlockClick}
           />
 
-          <div className="flex-1 flex flex-col bg-gray-50/30 overflow-hidden">
-            <div className="px-6 py-4 border-b bg-white/50 backdrop-blur-sm">
+          <div className="flex-1 flex flex-col bg-slate-50/50 dark:bg-slate-900 overflow-hidden">
+            <div className="px-6 py-4 border-b bg-background/80 border-border backdrop-blur-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-gray-800">Workspace</h3>
-                  <p className="text-xs text-gray-500">
+                  <h3 className="font-semibold text-foreground">Workspace</h3>
+                  <p className="text-xs text-muted-foreground">
                     {blocks.filter((b) => !b.parentId).length} root commands
                   </p>
                 </div>
@@ -111,7 +99,7 @@ export function WorkspaceSheet({
                     }}
                     variant="outline"
                     size="sm"
-                    className="text-red-500 hover:text-red-600 hover:bg-red-50 border-red-100 h-8"
+                    className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 border-red-100 dark:border-red-900 h-8"
                   >
                     Clear All
                   </Button>
@@ -127,7 +115,7 @@ export function WorkspaceSheet({
               />
             </ScrollArea>
 
-            <div className="p-4 bg-white border-t border-slate-200">
+            <div className="p-4 bg-background border-t border-border">
               <ExecutionControls
                 isRunning={isRunningCode}
                 isConnected={isConnected}

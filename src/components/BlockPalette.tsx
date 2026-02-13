@@ -37,9 +37,9 @@ export function BlockPalette({ categories, blocks, onBlockClick }: BlockPaletteP
   const categoryBlocks = getBlocksByCategory(activeCategory);
 
   return (
-    <div className="flex flex-col h-full bg-slate-100 rounded-2xl overflow-hidden shadow-inner">
+    <div className="flex flex-col h-full bg-slate-100 dark:bg-slate-900 rounded-2xl overflow-hidden shadow-inner">
       {/* Category tabs - large, touchable buttons */}
-      <div className="flex gap-2 p-3 bg-white border-b border-slate-200 overflow-x-auto">
+      <div className="flex gap-2 p-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
         {categories.map((category) => {
           const isActive = category.id === activeCategory;
           const color = getCategoryColor(category.id);
@@ -53,7 +53,7 @@ export function BlockPalette({ categories, blocks, onBlockClick }: BlockPaletteP
                 "transition-all duration-200",
                 isActive
                   ? "text-white shadow-lg scale-105"
-                  : "text-slate-600 bg-slate-100 hover:bg-slate-200"
+                  : "text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
               )}
               style={{
                 background: isActive
@@ -83,7 +83,7 @@ export function BlockPalette({ categories, blocks, onBlockClick }: BlockPaletteP
                     handleBlockClick(block);
                   }
                 }}
-                className="cursor-pointer transform transition-transform hover:scale-[1.02] active:scale-95 w-full text-left"
+                className="cursor-pointer active:scale-95 w-full text-left"
                 aria-label={`Add ${block.name} block`}
               >
                 <Block definition={block} isInPalette={true} />
@@ -91,7 +91,7 @@ export function BlockPalette({ categories, blocks, onBlockClick }: BlockPaletteP
             ))}
 
             {categoryBlocks.length === 0 && (
-              <div className="text-center py-8 text-slate-400">
+              <div className="text-center py-8 text-slate-400 dark:text-slate-500">
                 <div className="text-4xl mb-2">🔍</div>
                 <p>No blocks in this category</p>
               </div>
@@ -101,8 +101,10 @@ export function BlockPalette({ categories, blocks, onBlockClick }: BlockPaletteP
       </ScrollArea>
 
       {/* Hint */}
-      <div className="p-3 bg-white border-t border-slate-200 text-center">
-        <p className="text-xs text-slate-500">👆 Click a block to add it to your program</p>
+      <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 text-center">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          👆 Click a block to add it to your program
+        </p>
       </div>
     </div>
   );

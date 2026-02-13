@@ -111,6 +111,23 @@ const defaultBlocks: BlockDefinition[] = [
     codeTemplate: "if ({{condition}}) {\n  {{children}}\n}",
   },
   {
+    id: BLOCK_IDS.IF_ELSE,
+    category: "control",
+    name: "if/else",
+    color: "hsl(38, 92%, 50%)",
+    shape: "command",
+    parameters: [
+      {
+        name: "condition",
+        type: "boolean",
+        defaultValue: true,
+      },
+    ],
+    // The current block model has one child slot. Else-body support can be added
+    // later when dual branch child slots are introduced.
+    codeTemplate: "if ({{condition}}) {\n  {{children}}\n} else {\n  // else branch\n}",
+  },
+  {
     id: BLOCK_IDS.WHILE_LOOP,
     category: "control",
     name: "while",
@@ -124,6 +141,15 @@ const defaultBlocks: BlockDefinition[] = [
       },
     ],
     codeTemplate: "while ({{condition}}) {\n  {{children}}\n}",
+  },
+  {
+    id: BLOCK_IDS.FOREVER,
+    category: "control",
+    name: "forever",
+    color: "hsl(38, 92%, 50%)",
+    shape: "command",
+    parameters: [],
+    codeTemplate: "while (true) {\n  {{children}}\n}",
   },
 ];
 

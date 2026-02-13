@@ -36,10 +36,10 @@ export function ChildBlockSelector({
   const selectedCategoryBlocks = getChildCompatibleBlocks(selectedCategory);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-[84vw] max-w-3xl h-[72vh] bg-white shadow-xl">
-        <div className="px-6 py-4 border-b flex items-center justify-between">
-          <h3 className="font-semibold">Add Block to {parentBlockName}</h3>
+    <div className="fixed inset-0 bg-black/60 dark:bg-black/70 flex items-center justify-center z-50">
+      <Card className="w-[84vw] max-w-3xl h-[72vh] bg-card text-card-foreground shadow-xl">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+          <h3 className="font-semibold text-foreground">Add Block to {parentBlockName}</h3>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
@@ -47,7 +47,7 @@ export function ChildBlockSelector({
 
         <div className="flex h-[calc(72vh-64px)]">
           {/* Category Sidebar */}
-          <div className="w-32 border-r bg-gray-50">
+          <div className="w-32 border-r border-border bg-muted/60">
             <ScrollArea className="h-full">
               <div className="p-3 space-y-2">
                 {categories.map((category) => {
@@ -61,8 +61,8 @@ export function ChildBlockSelector({
                       onClick={() => setSelectedCategory(category.id)}
                       className={`w-full p-2 rounded text-xs flex flex-col items-center gap-1 transition-colors ${
                         selectedCategory === category.id
-                          ? "bg-blue-100 text-blue-700"
-                          : "hover:bg-gray-100"
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                          : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
                       <span className="text-sm inline-block">
@@ -81,7 +81,7 @@ export function ChildBlockSelector({
             <ScrollArea className="h-full">
               <div className="p-3 space-y-2">
                 {selectedCategoryBlocks.length === 0 ? (
-                  <div className="text-center text-gray-500 py-8">
+                  <div className="text-center text-muted-foreground py-8">
                     <Plus className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No blocks available</p>
                   </div>
@@ -96,7 +96,7 @@ export function ChildBlockSelector({
                           onBlockSelect(block);
                         }
                       }}
-                      className="cursor-pointer hover:scale-105 transition-transform w-full text-left"
+                      className="cursor-pointer w-full text-left"
                       aria-label={`Add ${block.name} block`}
                     >
                       <Block definition={block} isInPalette={true} />

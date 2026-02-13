@@ -1,6 +1,4 @@
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { renderCategoryIcon } from "@/lib/theme/iconRenderer";
 import { playSound, SCRATCH_THEME } from "@/lib/theme/scratch";
@@ -21,7 +19,6 @@ export function HorizontalBlockPalette({
   onBlockClick,
 }: HorizontalBlockPaletteProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>(categories[0]?.id || "");
-  const [isExpanded, setIsExpanded] = useState(true);
 
   const getBlocksByCategory = (categoryId: string) => {
     return blocks.filter((block) => block.category === categoryId);
@@ -44,58 +41,9 @@ export function HorizontalBlockPalette({
 
   const selectedCategoryBlocks = getBlocksByCategory(selectedCategory);
 
-  if (!isExpanded) {
-    return (
-      <div className="bg-white border-b border-slate-200 p-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {categories.map((category) => {
-              const isActive = category.id === selectedCategory;
-              const color = getCategoryColor(category.id);
-
-              return (
-                <button
-                  type="button"
-                  key={category.id}
-                  onClick={() => handleCategoryClick(category.id)}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm",
-                    "transition-all duration-200",
-                    isActive
-                      ? "text-white shadow-md"
-                      : "text-slate-600 bg-slate-100 hover:bg-slate-200"
-                  )}
-                  style={{
-                    background: isActive ? color : undefined,
-                  }}
-                >
-                  <span className="text-lg inline-block">{renderCategoryIcon(category.id)}</span>
-                  <span>{category.name}</span>
-                </button>
-              );
-            })}
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              playSound("click");
-              setIsExpanded(true);
-            }}
-            className="flex items-center gap-1 text-slate-500"
-          >
-            <span className="text-xs">Show Blocks</span>
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white border-b border-slate-200">
-      {/* Category Tabs */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+    <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+      <div className="flex items-center px-4 py-3 border-b border-slate-100 dark:border-slate-700">
         <div className="flex items-center gap-3 overflow-x-auto">
           {categories.map((category) => {
             const isActive = category.id === selectedCategory;
@@ -111,7 +59,7 @@ export function HorizontalBlockPalette({
                   "transition-all duration-200",
                   isActive
                     ? "text-white shadow-lg scale-105"
-                    : "text-slate-600 bg-slate-100 hover:bg-slate-200"
+                    : "text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
                 )}
                 style={{
                   background: isActive
@@ -126,24 +74,11 @@ export function HorizontalBlockPalette({
             );
           })}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            playSound("click");
-            setIsExpanded(false);
-          }}
-          className="flex items-center gap-1 text-slate-500 flex-shrink-0"
-        >
-          <span className="text-xs">Hide Blocks</span>
-          <ChevronUp className="h-4 w-4" />
-        </Button>
       </div>
 
-      {/* Horizontal Scrolling Blocks */}
-      <div className="p-4 bg-slate-50/50">
+      <div className="p-3 bg-slate-50/50 dark:bg-slate-800/50">
         <ScrollArea className="w-full">
-          <div className="flex gap-4 pb-2">
+          <div className="flex gap-2 pb-2">
             {selectedCategoryBlocks.map((block) => (
               <button
                 type="button"
@@ -154,14 +89,14 @@ export function HorizontalBlockPalette({
                     handleBlockClick(block);
                   }
                 }}
-                className="cursor-pointer hover:scale-105 active:scale-95 transition-transform flex-shrink-0 w-full text-left"
+                className="cursor-pointer active:scale-95 flex-shrink-0 text-left"
                 aria-label={`Add ${block.name} block`}
               >
                 <Block definition={block} isInPalette={true} />
               </button>
             ))}
             {selectedCategoryBlocks.length === 0 && (
-              <div className="text-slate-400 text-sm py-4 flex items-center gap-2">
+              <div className="text-slate-400 dark:text-slate-500 text-sm py-4 flex items-center gap-2">
                 <span className="text-2xl">🔍</span>
                 No blocks available in this category
               </div>

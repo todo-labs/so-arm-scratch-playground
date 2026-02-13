@@ -110,7 +110,7 @@ export const logger = {
   },
 };
 
-// Expose logger on window for debugging in browser console
-if (typeof window !== "undefined") {
+// Expose logger on window only in development for interactive debugging
+if (typeof window !== "undefined" && import.meta.env?.MODE === "development") {
   (window as unknown as { logger: typeof logger }).logger = logger;
 }

@@ -22,9 +22,9 @@ export const GeneratedCode = () => {
         </div>
       </div>
 
-      <div className="flex-1 bg-gray-50 rounded-lg border overflow-hidden">
+      <div className="flex-1 bg-muted/40 rounded-lg border border-border overflow-hidden">
         <ScrollArea className="h-full">
-          <pre className="text-sm p-4 whitespace-pre-wrap">
+          <pre className="text-sm p-4 whitespace-pre-wrap text-foreground">
             <code>{generatedCode || "// Generate code from your blocks to see it here"}</code>
           </pre>
         </ScrollArea>

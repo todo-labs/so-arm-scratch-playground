@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "@/data/defaultBlocks";
 import { Header } from "@/components/Header";
 import RobotLoader from "@/components/RobotLoader";
 import { WorkspaceSheet } from "@/components/WorkspaceSheet";
@@ -89,7 +90,7 @@ function PageContent({
   }, [isRunningCode, setActiveTab]);
 
   return (
-    <div className="relative min-h-screen w-full bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="relative min-h-screen w-full bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-950 dark:to-slate-900">
       {/* Header - always visible and on top */}
       <div className="fixed top-0 left-0 w-full z-40">
         <Header

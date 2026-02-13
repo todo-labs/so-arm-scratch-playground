@@ -15,6 +15,8 @@ interface BlockParameterEditorProps {
   value: boolean | number | string;
   onChange: (value: boolean | number | string) => void;
   className?: string;
+  min?: number;
+  max?: number;
 }
 
 export function BlockParameterEditor({
@@ -22,10 +24,15 @@ export function BlockParameterEditor({
   value,
   onChange,
   className = "",
+  min,
+  max,
 }: BlockParameterEditorProps) {
   const handleChange = (newValue: boolean | number | string) => {
     onChange(newValue);
   };
+
+  const resolvedMin = min ?? parameter.min;
+  const resolvedMax = max ?? parameter.max;
 
   switch (parameter.type) {
     case "number":
@@ -34,11 +41,23 @@ export function BlockParameterEditor({
         <Input
           type="number"
           value={String(value ?? parameter.defaultValue)}
-          onChange={(e) => handleChange(Number(e.target.value))}
-          min={parameter.min}
-          max={parameter.max}
+          onChange={(e) => {
+            const numericValue = Number(e.target.value);
+            if (Number.isNaN(numericValue)) return;
+
+            let boundedValue = numericValue;
+            if (typeof resolvedMin === "number") {
+              boundedValue = Math.max(resolvedMin, boundedValue);
+            }
+            if (typeof resolvedMax === "number") {
+              boundedValue = Math.min(resolvedMax, boundedValue);
+            }
+            handleChange(boundedValue);
+          }}
+          min={resolvedMin}
+          max={resolvedMax}
           step={parameter.step}
-          className={`w-14 h-6 text-[11px] font-bold bg-white text-slate-900 rounded-full border border-black/10 shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] focus-visible:ring-2 focus-visible:ring-black/5 ${className}`}
+          className={`w-14 h-6 text-[11px] font-bold bg-background/95 text-foreground rounded-full border border-border shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] focus-visible:ring-2 focus-visible:ring-ring/40 ${className}`}
         />
       );
 
@@ -49,7 +68,7 @@ export function BlockParameterEditor({
           value={String(value ?? parameter.defaultValue)}
           onChange={(e) => handleChange(e.target.value)}
           placeholder={parameter.placeholder}
-          className={`w-20 h-6 text-[11px] font-bold bg-white text-slate-900 rounded-full border border-black/10 shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] focus-visible:ring-2 focus-visible:ring-black/5 ${className}`}
+          className={`w-20 h-6 text-[11px] font-bold bg-background/95 text-foreground rounded-full border border-border shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] focus-visible:ring-2 focus-visible:ring-ring/40 ${className}`}
         />
       );
 
@@ -57,13 +76,17 @@ export function BlockParameterEditor({
       return (
         <Select value={String(value ?? parameter.defaultValue)} onValueChange={handleChange}>
           <SelectTrigger
-            className={`w-auto min-w-[60px] h-6 px-3 text-[11px] font-bold bg-white text-slate-900 rounded-full border border-black/10 shadow-sm hover:bg-gray-50 transition-colors ${className}`}
+            className={`w-auto min-w-[60px] h-6 px-3 text-[11px] font-bold bg-background text-foreground rounded-full border border-border shadow-sm hover:bg-accent transition-colors ${className}`}
           >
-            <SelectValue className="text-gray-900" />
+            <SelectValue className="text-foreground" />
           </SelectTrigger>
-          <SelectContent className="rounded-xl border-black/10">
+          <SelectContent className="rounded-xl border-border">
             {parameter.options?.map((option) => (
-              <SelectItem key={option} value={option} className="text-xs text-gray-900 rounded-lg">
+              <SelectItem
+                key={option}
+                value={option}
+                className="text-xs text-foreground rounded-lg"
+              >
                 {option}
               </SelectItem>
             ))}
@@ -77,7 +100,7 @@ export function BlockParameterEditor({
           <Checkbox
             checked={Boolean(value ?? parameter.defaultValue)}
             onCheckedChange={handleChange}
-            className="bg-white/95 border border-black/20 data-[state=checked]:bg-white data-[state=checked]:text-black w-4 h-4 rounded-sm shadow-none"
+            className="bg-background/95 border border-border data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground w-4 h-4 rounded-sm shadow-none"
           />
         </div>
       );
